@@ -59,74 +59,75 @@ class OllamaScraper:
                 updated_elem = element.select_one('span[x-test-updated]')
                 updated = updated_elem.text.strip() if updated_elem else ""
                 
+                # Extract capabilities - using find_all instead of select to ensure we get all elements
+                capabilities = []
+                for span in element.find_all('span'):
+                    if span.has_attr('x-test-capability'):
+                        cap_text = span.get_text(strip=True)
+                        if cap_text:
+                            capabilities.append(cap_text)
+                
+                # Extract sizes - using find_all instead of select to be consistent
+                sizes = []
+                for span in element.find_all('span'):
+                    if span.has_attr('x-test-size'):
+                        size_text = span.get_text(strip=True)
+                        if size_text:
+                            sizes.append(size_text)
+                
                 models.append({
                     'name': model_name,
                     'url': model_url,
                     'description': description,
                     'pull_count': pull_count,
                     'tag_count': tag_count,
-                    'updated': updated
+                    'updated': updated,
+                    'capabilities': capabilities,
+                    'sizes': sizes
                 })
         
         logging.info(f"Found {len(models)} models")
         return models
     
     def get_model_details(self, model_url):
-        """Get details for a specific model including all tags"""
+        """Get additional details for a specific model"""
         logging.info(f"Fetching details for model: {model_url}")
         response = self.session.get(model_url)
         soup = BeautifulSoup(response.text, 'html.parser')
         
         model_name = model_url.split('/')[-1]
-        capabilities = []
-        sizes = []
         
-        # Look for capability tags
-        capability_elements = soup.select('span[x-test-capability]')
-        for element in capability_elements:
-            capabilities.append(element.text.strip())
+        # Extract any additional information from the detail page
+        # Details already extracted from search page don't need to be extracted again
         
-        # Look for size tags
-        size_elements = soup.select('span[x-test-size]')
-        for element in size_elements:
-            sizes.append(element.text.strip())
-        
-        # Extract description if available on the detail page
-        description_elem = soup.select_one('p.max-w-lg, div.description')
-        description = description_elem.text.strip() if description_elem else ""
-        
-        # Extract other metadata if available
-        pull_count_elem = soup.select_one('span[x-test-pull-count]')
-        pull_count = pull_count_elem.text.strip() if pull_count_elem else ""
-        
-        updated_elem = soup.select_one('span[x-test-updated]')
-        updated = updated_elem.text.strip() if updated_elem else ""
+        # For example, you might want to extract additional metadata specific to the detail page
+        readme_elem = soup.select_one('div.readme-content')
+        readme_content = readme_elem.text.strip() if readme_elem else ""
         
         return {
             'name': model_name,
             'url': model_url,
-            'description': description,
-            'capabilities': capabilities,
-            'sizes': sizes,
-            'pull_count': pull_count,
-            'updated': updated
+            'readme': readme_content
         }
     
     def scrape_all(self):
-        """Main function to scrape all models and their tags"""
+        """Main function to scrape all models"""
         all_models = self.get_all_models()
-        detailed_models = []
         
-        for model in all_models:
+        # If you need additional details from model pages, 
+        # you can still fetch and merge them
+        for i, model in enumerate(all_models):
             try:
-                model_details = self.get_model_details(model['url'])
-                detailed_models.append(model_details)
-                # Be respectful with requests
-                time.sleep(self.delay)
+                # Since we now extract most data from the search page,
+                # we might only need additional details in certain cases
+                if False:  # Change this condition if you need model details
+                    model_details = self.get_model_details(model['url'])
+                    all_models[i].update(model_details)
+                    time.sleep(self.delay)
             except Exception as e:
                 logging.error(f"Error processing model {model['name']}: {str(e)}")
         
-        return detailed_models
+        return all_models
 
 if __name__ == "__main__":
     scraper = OllamaScraper()
