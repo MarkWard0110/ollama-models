@@ -17,6 +17,7 @@ class ModelSelector:
     def __init__(self):
         self.models = []
         self.previous_selections: Dict[str, Set[str]] = {}
+        self.current_selections: Dict[str, List[str]] = {}
         self.load_models()
         self.load_previous_selections()
 
@@ -85,110 +86,194 @@ class ModelSelector:
         
         return all_model_tags
         
-    def select_model_tags_directly(self) -> List[Tuple[str, str]]:
-        """Present a unified list of model:tag combinations for selection"""
-        model_tags = self.get_all_model_tags()
+    def browse_models(self) -> List[str]:
+        """Browse and select models before viewing their tags"""
+        try:
+            # Apply capability/size filtering similar to the existing code
+            capabilities_set = set()
+            for model in self.models:
+                for cap in model.get('capabilities', []):
+                    if cap:
+                        capabilities_set.add(cap)
+            
+            filter_options = ["all"] + sorted(list(capabilities_set))
+            
+            size_set = set()
+            for model in self.models:
+                for size in model.get('sizes', []):
+                    if size:
+                        size_set.add(size)
+            
+            filter_choices = filter_options[:]
+            
+            if size_set:
+                filter_choices.append("---------- Filter by Size ----------")
+                filter_choices.extend([f"size:{size}" for size in sorted(list(size_set))])
+            
+            questions = [
+                inquirer.List(
+                    'filter',
+                    message="Filter models (or show all)",
+                    choices=filter_choices,
+                    default="all",
+                )
+            ]
+            
+            filter_answer = inquirer.prompt(questions)
+            if not filter_answer:
+                return []
+                
+            filter_choice = filter_answer['filter']
+            
+            # Skip the separator line if selected
+            if filter_choice.startswith("-"):
+                print("Please select a valid filter option.")
+                return self.browse_models()
+                
+            # Search for models
+            search_options = [
+                inquirer.Text('search', message="Filter models by name (leave empty to show all)", default="")
+            ]
+            
+            search_answers = inquirer.prompt(search_options)
+            if not search_answers:
+                return []
+                
+            search_term = search_answers['search'].lower().strip()
+            
+            # Filter and prepare models for display
+            filtered_models = []
+            
+            for model in self.models:
+                model_name = model.get('name', '')
+                
+                # Apply capability/size filter
+                if filter_choice != "all":
+                    if filter_choice.startswith("size:"):
+                        size_filter = filter_choice.split(":", 1)[1]
+                        if size_filter not in model.get('sizes', []):
+                            continue
+                    elif filter_choice not in model.get('capabilities', []):
+                        continue
+                
+                # Apply name search filter
+                if search_term and search_term not in model_name.lower():
+                    continue
+                    
+                # Format model for display
+                capabilities = model.get('capabilities', [])
+                sizes = model.get('sizes', [])
+                tag_count = model.get('tag_count', 0)
+                pull_count = model.get('pull_count', '')
+                description = model.get('description', '')
+                
+                cap_str = f"[{', '.join(capabilities)}]" if capabilities else ""
+                size_str = f"({', '.join(sizes)})" if sizes else ""
+                
+                # Create display representation
+                display = f"{model_name} {cap_str} {size_str}"
+                if pull_count:
+                    display += f" - {pull_count} pulls"
+                if tag_count:
+                    display += f" - {tag_count} tags"
+                    
+                # Add indicator for models that have selected tags
+                if model_name in self.current_selections and self.current_selections[model_name]:
+                    display = f"[*] {display}"
+                    
+                # Keep the model info with the display name
+                filtered_models.append((display, model))
+            
+            # Sort filtered models alphabetically by name instead of by popularity
+            filtered_models.sort(key=lambda item: item[1].get('name', '').lower())
+            
+            if not filtered_models:
+                print(f"No models match the filter: {filter_choice} and search: {search_term}")
+                input("Press Enter to try again...")
+                return self.browse_models()
+            
+            # Add "Done" option at the end to finish selection
+            filtered_models.append(("---------- DONE SELECTING MODELS ----------", None))
+            
+            # Present models for selection
+            questions = [
+                inquirer.List(
+                    'model',
+                    message="Select a model to view its tags (or DONE to finish)",
+                    choices=[fm[0] for fm in filtered_models],
+                )
+            ]
+            
+            answer = inquirer.prompt(questions)
+            if not answer:
+                return []
+            
+            selected_display = answer['model']
+            
+            # Check if DONE was selected
+            if selected_display.startswith("---------- DONE"):
+                # Return all models that have selected tags
+                return [model_name for model_name, tags in self.current_selections.items() if tags]
+                
+            # Find the selected model
+            for display, model in filtered_models:
+                if display == selected_display:
+                    return self.browse_model_tags(model)
+                    
+            # Should not reach here
+            return self.browse_models()
         
-        if not model_tags:
-            print("No model tags found in the JSON file.")
-            return []
+        except KeyboardInterrupt:
+            print("\nOperation interrupted. Would you like to save your progress?")
+            try:
+                confirm = inquirer.prompt([
+                    inquirer.Confirm('save_on_exit', 
+                                    message="Save all current selections before exiting?", 
+                                    default=True)
+                ])
+                
+                if confirm and confirm.get('save_on_exit'):
+                    # Convert current selections to the format needed for save_selections
+                    selected_tags = []
+                    for model_name, tags in self.current_selections.items():
+                        for tag in tags:
+                            selected_tags.append((model_name, tag))
+                    
+                    if selected_tags:
+                        self.save_selections(selected_tags)
+            except:
+                pass  # Handle any further interruption by just exiting
+            
+            sys.exit(0)
 
-        # First show filter options for capabilities
-        capabilities_set = set()
-        for model in self.models:
-            for cap in model.get('capabilities', []):
-                if cap:  # Only add non-empty capabilities
-                    capabilities_set.add(cap)
+    def browse_model_tags(self, model: Dict) -> List[str]:
+        """Browse and select tags for a specific model"""
+        model_name = model.get('name', '')
+        tags = model.get('tags', [])
         
-        filter_options = ["all"] + sorted(list(capabilities_set))
-        
-        # Add filtering by model size (separate category)
-        size_set = set()
-        for model in self.models:
-            for size in model.get('sizes', []):
-                if size:  # Only add non-empty sizes
-                    size_set.add(size)
-        
-        filter_choices = filter_options[:]
-        
-        # Add size filters with a visual separator
-        if size_set:
-            filter_choices.append("---------- Filter by Size ----------")
-            filter_choices.extend([f"size:{size}" for size in sorted(list(size_set))])
-        
-        questions = [
-            inquirer.List(
-                'filter',
-                message="Filter models (or show all)",
-                choices=filter_choices,
-                default="all",
-            )
-        ]
-        
-        filter_answer = inquirer.prompt(questions)
-        if not filter_answer:
-            return []
+        while True:  # Add loop to allow repeated tag selection and back navigation
+            # If no tags or empty list, create a default "latest" tag
+            if not tags:
+                tags = [{"name": "latest", "updated": model.get("updated", "")}]
             
-        filter_choice = filter_answer['filter']
-        
-        # Skip the separator line if selected
-        if filter_choice.startswith("-"):
-            print("Please select a valid filter option.")
-            return self.select_model_tags_directly()
-            
-        # Group model tags by model name for better organization
-        model_tag_groups = defaultdict(list)
-        model_info = {}
-        
-        for model, tag, tag_name in model_tags:
-            model_name = model.get('name', '')
-            # Store model info for later use
-            if model_name not in model_info:
-                model_info[model_name] = model
-            model_tag_groups[model_name].append((tag, tag_name))
-        
-        # Filter models based on selected capability or size
-        if filter_choice != "all":
-            filtered_model_names = []
-            
-            if filter_choice.startswith("size:"):
-                size_filter = filter_choice.split(":", 1)[1]
-                for model_name, model in model_info.items():
-                    if size_filter in model.get('sizes', []):
-                        filtered_model_names.append(model_name)
-            else:
-                # Filter by capability
-                for model_name, model in model_info.items():
-                    if filter_choice in model.get('capabilities', []):
-                        filtered_model_names.append(model_name)
-            
-            # Only keep model tags for models that match the filter
-            model_tag_groups = {k: v for k, v in model_tag_groups.items() if k in filtered_model_names}
-        
-        # Add search/filter feature
-        questions = [
-            inquirer.Text('search', message="Filter tags (leave empty to show all)", default="")
-        ]
-        
-        search_answers = inquirer.prompt(questions)
-        if not search_answers:
-            return []
-            
-        search_term = search_answers['search'].lower().strip()
-        
-        # Now create selection choices with visual section headers for each model
-        all_choices = []
-        model_tag_mapping = {}
-        
-        model_count = 0
-        # Sort model names for consistent display
-        for model_name in sorted(model_tag_groups.keys()):
-            model = model_info[model_name]
-            model_choices = []
-            
-            # Sort tags for this model by recency
-            tags = model_tag_groups[model_name]
-            tags.sort(key=lambda t: (
+            # Prepare tags with names
+            named_tags = []
+            for i, tag in enumerate(tags):
+                tag_name = tag.get('name', '')
+                
+                # If the tag doesn't have a name but has an 'updated' field, create a synthetic tag name
+                if not tag_name and 'updated' in tag:
+                    if i == 0:
+                        tag_name = "latest"
+                    else:
+                        tag_name = f"tag_{i}"
+                    tag['name'] = tag_name
+                    
+                if tag_name:
+                    named_tags.append((tag, tag_name))
+                    
+            # Sort tags by recency
+            named_tags.sort(key=lambda t: (
                 0 if t[1] == 'latest' else 1,  # latest tag first
                 0 if 'hours ago' in t[0].get('updated', '') else 
                 1 if 'days ago' in t[0].get('updated', '') else 
@@ -197,13 +282,16 @@ class ModelSelector:
                 t[1]  # alphabetically by tag name
             ))
             
-            for tag, tag_name in tags:
-                # Format tag info
+            # Format tags for display
+            tag_choices = []
+            tag_mapping = {}
+            
+            for tag, tag_name in named_tags:
                 tag_size = tag.get('size', '')
                 tag_updated = tag.get('updated', '')
                 tag_hash = tag.get('hash', '')
                 
-                display_name = f"{model_name}:{tag_name}"
+                display_name = f"{tag_name}"
                 details = []
                 if tag_size:
                     details.append(tag_size)
@@ -212,85 +300,135 @@ class ModelSelector:
                 if tag_hash:
                     short_hash = tag_hash[:8] if len(tag_hash) > 8 else tag_hash
                     details.append(f"[{short_hash}]")
-                
+                    
                 if details:
                     display_name += f" ({', '.join(details)})"
-                
-                # Apply search filter if provided
-                if search_term and search_term not in display_name.lower():
-                    continue
                     
-                # Mark previously selected combinations
-                if model_name in self.previous_selections and tag_name in self.previous_selections[model_name]:
+                # Mark previously selected tags
+                selected = model_name in self.current_selections and tag_name in self.current_selections[model_name]
+                if selected:
                     display_name = f"[*] {display_name}"
-                
-                model_choices.append(display_name)
-                model_tag_mapping[display_name] = (model_name, tag_name)
-            
-            # Only add model if it has tags that match the search
-            if model_choices:
-                model_count += 1
-                # Print a visual header for the model section
-                capabilities = model.get('capabilities', [])
-                sizes = model.get('sizes', [])
-                description = model.get('description', '')
-                pull_count = model.get('pull_count', '')
-                
-                cap_str = f" [{', '.join(capabilities)}]" if capabilities else ""
-                size_str = f" ({', '.join(sizes)})" if sizes else ""
-                pull_str = f" - {pull_count} pulls" if pull_count else ""
-                desc_str = f": {description[:50]}{'...' if len(description) > 50 else ''}" if description else ""
-                
-                if model_count > 1:
-                    all_choices.append(f"---------- {model_count}. {model_name} ----------")
-                else:
-                    all_choices.append(f"---------- {model_name} ----------")
                     
-                # Add model info as a separate choice that can't be selected
-                info_line = f"{cap_str}{size_str}{pull_str}{desc_str}".strip()
-                if info_line:
-                    all_choices.append(f"INFO: {info_line}")
-                
-                # Add all choices for this model
-                all_choices.extend(model_choices)
-        
-        if not all_choices:
-            print(f"No models/tags match the filter: {filter_choice} and search term: {search_term}")
-            return []
-        
-        # Remove info and separator lines from defaults
-        defaults = [c for c in all_choices if c.startswith('[*]') and not c.startswith('---') and not c.startswith('INFO:')]
+                tag_choices.append(display_name)
+                tag_mapping[display_name] = tag_name
             
-        # Filter out non-selectable items
-        selectable_choices = []
-        for choice in all_choices:
-            if choice.startswith('----------') or choice.startswith('INFO:'):
-                selectable_choices.append((choice, choice, False))  # Not selectable
-            else:
-                selectable_choices.append((choice, choice, True))   # Selectable
-        
-        selection_questions = [
-            inquirer.Checkbox(
-                'selected_model_tags',
-                message=f"Select model tags (use spacebar to select/unselect)",
-                choices=selectable_choices,
-                default=defaults
-            )
-        ]
-        
-        answers = inquirer.prompt(selection_questions)
-        if not answers:
-            return []
-        
-        # Map selected display names back to model:tag pairs
-        selected_display_names = answers['selected_model_tags']
-        selected_tags = []
-        
-        for display_name in selected_display_names:
-            if display_name in model_tag_mapping:
-                selected_tags.append(model_tag_mapping[display_name])
-        
-        return selected_tags
+            # Display model info first
+            capabilities = model.get('capabilities', [])
+            sizes = model.get('sizes', [])
+            description = model.get('description', '')
+            pull_count = model.get('pull_count', '')
+            
+            print("\n" + "="*60)
+            print(f"MODEL: {model_name}")
+            if capabilities:
+                print(f"Capabilities: {', '.join(capabilities)}")
+            if sizes:
+                print(f"Sizes: {', '.join(sizes)}")
+            if pull_count:
+                print(f"Popularity: {pull_count} pulls")
+            if description:
+                print(f"Description: {description}")
+            print("="*60 + "\n")
+            
+            # First ask if they want to select tags or go back
+            # This separates the navigation from the tag selection
+            nav_question = [
+                inquirer.List(
+                    'action',
+                    message=f"Select action for model: {model_name}",
+                    choices=[
+                        "Select tags",
+                        "Back to model selection (ESC key also works)"
+                    ],
+                    default="Select tags"
+                )
+            ]
+            
+            try:
+                nav_answer = inquirer.prompt(nav_question)
+                if not nav_answer:
+                    return self.browse_models()  # Handle ESC key
+                
+                if nav_answer['action'] == "Back to model selection (ESC key also works)":
+                    return self.browse_models()
+            except KeyboardInterrupt:
+                # Handle Ctrl+C as back navigation too
+                return self.browse_models()
+            
+            # If we get here, user chose to select tags
+            # Present tags for multi-selection
+            if not tag_choices:
+                print("No tags available for this model.")
+                input("Press Enter to go back...")
+                return self.browse_models()
+
+            tag_questions = [
+                inquirer.Checkbox(
+                    'selected_tags',
+                    message=f"Select tags for {model_name} (use spacebar to select/unselect, ESC when done)",
+                    choices=tag_choices,
+                    default=[c for c in tag_choices if c.startswith('[*]')],
+                    carousel=True  # Enable wrapping around the options
+                )
+            ]
+            
+            try:
+                answers = inquirer.prompt(tag_questions)
+                if not answers:  # User pressed ESC
+                    # Ask user if they want to save selections before going back
+                    confirm = inquirer.prompt([
+                        inquirer.Confirm('save_before_back', 
+                                        message="Save current tag selections before going back?", 
+                                        default=True)
+                    ])
+                    
+                    if confirm and confirm.get('save_before_back'):
+                        # Keep existing selections for this model
+                        pass
+                    else:
+                        # Clear selections for this model
+                        if model_name in self.current_selections:
+                            del self.current_selections[model_name]
+                    
+                    return self.browse_models()
+                
+                # Process the selected tags
+                selected_displays = answers['selected_tags']
+                selected_tags = []
+                
+                for display in selected_displays:
+                    if display in tag_mapping:
+                        selected_tags.append(tag_mapping[display])
+                        
+                # Update current selections
+                if selected_tags:
+                    self.current_selections[model_name] = selected_tags
+                elif model_name in self.current_selections:
+                    # Remove the model from selections if no tags selected
+                    del self.current_selections[model_name]
+                    
+                # Ask if user wants to go back or continue selecting tags
+                action_q = [
+                    inquirer.List(
+                        'next_action',
+                        message="What would you like to do next?",
+                        choices=[
+                            "Save these tags and go back to model selection",
+                            "Continue selecting tags for this model",
+                        ],
+                        default="Save these tags and go back to model selection"
+                    )
+                ]
+                
+                action_a = inquirer.prompt(action_q)
+                if not action_a or action_a['next_action'] == "Save these tags and go back to model selection":
+                    return self.browse_models()
+                # Otherwise continue loop to select more tags
+                    
+            except KeyboardInterrupt:
+                # Confirm if they want to save or discard changes on Ctrl+C
+                print("\nOperation interrupted. Going back to model selection.")
+                return self.browse_models()
 
     def save_selections(self, selections: List[Tuple[str, str]]):
         """Save selections to a file"""
@@ -314,35 +452,72 @@ class ModelSelector:
     def run(self):
         """Main method to run the model selection process"""
         print("\n=== OLLAMA MODEL SELECTOR ===\n")
+        print("Keyboard shortcuts:")
+        print("  ESC - Go back to previous menu or cancel")
+        print("  Enter - Confirm selection")
+        print("  Ctrl+C - Exit the program\n")
         
-        # Select model tags directly
-        selected_tags = self.select_model_tags_directly()
-            
-        if not selected_tags:
-            print("\nNo model tags selected. Exiting without saving.")
-            return
-            
-        # Show full summary of selections
-        print(f"\nSelected {len(selected_tags)} model:tag combinations:")
-        selection_groups = defaultdict(list)
-        for model, tag in selected_tags:
-            selection_groups[model].append(tag)
+        # Initialize current selections from previous selections
+        for model, tags in self.previous_selections.items():
+            self.current_selections[model] = list(tags)
         
-        for model, tags in sorted(selection_groups.items()):
-            print(f"  {model}:")
-            for tag in sorted(tags):
-                print(f"    - {tag}")
+        while True:
+            selected_model_names = self.browse_models()
             
-        # Confirm and save selections
-        questions = [
-            inquirer.Confirm('save', message="Save these selections?", default=True)
-        ]
-        answers = inquirer.prompt(questions)
-        
-        if answers and answers['save']:
-            self.save_selections(selected_tags)
-        else:
-            print("\nSelections not saved.")
+            if not selected_model_names:
+                print("\nNo models selected. Exiting without saving.")
+                return
+            
+            # Convert current selections to the format needed for save_selections
+            selected_tags = []
+            for model_name, tags in self.current_selections.items():
+                if model_name in selected_model_names:
+                    for tag in tags:
+                        selected_tags.append((model_name, tag))
+                
+            if not selected_tags:
+                print("\nNo model tags selected. Exiting without saving.")
+                return
+                
+            # Show full summary of selections
+            print(f"\nSelected {len(selected_tags)} model:tag combinations:")
+            selection_groups = defaultdict(list)
+            for model, tag in selected_tags:
+                selection_groups[model].append(tag)
+            
+            for model, tags in sorted(selection_groups.items()):
+                print(f"  {model}:")
+                for tag in sorted(tags):
+                    print(f"    - {tag}")
+                
+            # Confirm and save selections with options to go back
+            questions = [
+                inquirer.List(
+                    'action',
+                    message="What would you like to do?",
+                    choices=[
+                        "Save selections and exit",
+                        "Go back to model selection",
+                        "Exit without saving"
+                    ],
+                    default="Save selections and exit"
+                )
+            ]
+            answers = inquirer.prompt(questions)
+            
+            if not answers:
+                return
+                
+            action = answers['action']
+            
+            if action == "Save selections and exit":
+                self.save_selections(selected_tags)
+                return
+            elif action == "Go back to model selection":
+                continue
+            else:  # "Exit without saving"
+                print("\nExiting without saving selections.")
+                return
 
 
 if __name__ == "__main__":
