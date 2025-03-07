@@ -3,9 +3,9 @@
     "name": "qwq",
     "url": "https://ollama.com/library/qwq",
     "description": "QwQ is the reasoning model of the Qwen series.",
-    "pull_count": "390.7K",
+    "pull_count": "482.5K",
     "tag_count": 8,
-    "updated": "23 hours ago",
+    "updated": "yesterday",
     "capabilities": [
       "tools"
     ],
@@ -17,19 +17,19 @@
         "name": "latest",
         "hash": "cc1091b0e276",
         "size": "20GB",
-        "updated": "23 hours ago"
+        "updated": ""
       },
       {
         "name": "32b",
         "hash": "cc1091b0e276",
         "size": "20GB",
-        "updated": "23 hours ago"
+        "updated": ""
       },
       {
         "name": "32b-fp16",
         "hash": "170a05717bd2",
         "size": "66GB",
-        "updated": "23 hours ago"
+        "updated": ""
       },
       {
         "name": "32b-preview-fp16",
@@ -53,13 +53,13 @@
         "name": "32b-q4_K_M",
         "hash": "cc1091b0e276",
         "size": "20GB",
-        "updated": "23 hours ago"
+        "updated": ""
       },
       {
         "name": "32b-q8_0",
         "hash": "fe0fb737d86f",
         "size": "35GB",
-        "updated": "23 hours ago"
+        "updated": ""
       }
     ]
   },
@@ -67,7 +67,7 @@
     "name": "deepseek-r1",
     "url": "https://ollama.com/library/deepseek-r1",
     "description": "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
-    "pull_count": "23.6M",
+    "pull_count": "23.7M",
     "tag_count": 29,
     "updated": "4 weeks ago",
     "capabilities": [],
@@ -361,7 +361,7 @@
     "name": "phi4",
     "url": "https://ollama.com/library/phi4",
     "description": "Phi-4 is a 14B parameter, state-of-the-art open model from Microsoft.",
-    "pull_count": "910.2K",
+    "pull_count": "919.6K",
     "tag_count": 5,
     "updated": "8 weeks ago",
     "capabilities": [],
@@ -800,7 +800,7 @@
     "name": "llama3.1",
     "url": "https://ollama.com/library/llama3.1",
     "description": "Llama 3.1 is a new state-of-the-art model from Meta available in 8B, 70B and 405B parameter sizes.",
-    "pull_count": "26M",
+    "pull_count": "26.1M",
     "tag_count": 93,
     "updated": "3 months ago",
     "capabilities": [
@@ -11822,7 +11822,7 @@
     "name": "starcoder2",
     "url": "https://ollama.com/library/starcoder2",
     "description": "StarCoder2 is the next generation of transparently trained open code LLMs that comes in three sizes: 3B, 7B and 15B parameters.",
-    "pull_count": "894.6K",
+    "pull_count": "894.9K",
     "tag_count": 67,
     "updated": "6 months ago",
     "capabilities": [],
@@ -12240,7 +12240,7 @@
     "name": "deepseek-v3",
     "url": "https://ollama.com/library/deepseek-v3",
     "description": "A strong Mixture-of-Experts (MoE) language model with 671B total parameters with 37B activated for each token.",
-    "pull_count": "718K",
+    "pull_count": "719.3K",
     "tag_count": 5,
     "updated": "7 weeks ago",
     "capabilities": [],
@@ -12284,7 +12284,7 @@
     "name": "deepseek-coder-v2",
     "url": "https://ollama.com/library/deepseek-coder-v2",
     "description": "An open-source Mixture-of-Experts code language model that achieves performance comparable to GPT4-Turbo in code-specific tasks.",
-    "pull_count": "713.1K",
+    "pull_count": "714.3K",
     "tag_count": 64,
     "updated": "6 months ago",
     "capabilities": [],
@@ -12683,7 +12683,7 @@
     "name": "snowflake-arctic-embed",
     "url": "https://ollama.com/library/snowflake-arctic-embed",
     "description": "A suite of text embedding models by Snowflake, optimized for performance.",
-    "pull_count": "696.1K",
+    "pull_count": "696.3K",
     "tag_count": 16,
     "updated": "10 months ago",
     "capabilities": [
@@ -12799,7 +12799,7 @@
     "name": "llama2-uncensored",
     "url": "https://ollama.com/library/llama2-uncensored",
     "description": "Uncensored Llama 2 model by George Sung and Jarrad Hope.",
-    "pull_count": "687.8K",
+    "pull_count": "690.5K",
     "tag_count": 34,
     "updated": "16 months ago",
     "capabilities": [],
@@ -13018,7 +13018,7 @@
     "name": "deepseek-coder",
     "url": "https://ollama.com/library/deepseek-coder",
     "description": "DeepSeek Coder is a capable coding model trained on two trillion code and natural language tokens.",
-    "pull_count": "593.8K",
+    "pull_count": "594.6K",
     "tag_count": 102,
     "updated": "14 months ago",
     "capabilities": [],
@@ -13646,7 +13646,7 @@
     "name": "mixtral",
     "url": "https://ollama.com/library/mixtral",
     "description": "A set of Mixture of Experts (MoE) model with open weights by Mistral AI in 8x7b and 8x22b parameter sizes.",
-    "pull_count": "578.8K",
+    "pull_count": "579.1K",
     "tag_count": 70,
     "updated": "2 months ago",
     "capabilities": [
@@ -14083,7 +14083,7 @@
     "name": "codegemma",
     "url": "https://ollama.com/library/codegemma",
     "description": "CodeGemma is a collection of powerful, lightweight models that can perform a variety of coding tasks like fill-in-the-middle code completion, code generation, natural language understanding, mathematical reasoning, and instruction following.",
-    "pull_count": "519.9K",
+    "pull_count": "520.9K",
     "tag_count": 85,
     "updated": "7 months ago",
     "capabilities": [],
@@ -14605,10 +14605,44 @@
     ]
   },
   {
+    "name": "bge-m3",
+    "url": "https://ollama.com/library/bge-m3",
+    "description": "BGE-M3 is a new model from BAAI distinguished for its versatility in Multi-Functionality, Multi-Linguality, and Multi-Granularity.",
+    "pull_count": "520.3K",
+    "tag_count": 3,
+    "updated": "7 months ago",
+    "capabilities": [
+      "embedding"
+    ],
+    "sizes": [
+      "567m"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "790764642607",
+        "size": "1.2GB",
+        "updated": "7 months ago"
+      },
+      {
+        "name": "567m",
+        "hash": "790764642607",
+        "size": "1.2GB",
+        "updated": "7 months ago"
+      },
+      {
+        "name": "567m-fp16",
+        "hash": "790764642607",
+        "size": "1.2GB",
+        "updated": "7 months ago"
+      }
+    ]
+  },
+  {
     "name": "dolphin-mixtral",
     "url": "https://ollama.com/library/dolphin-mixtral",
     "description": "Uncensored, 8x7b and 8x22b fine-tuned models based on the Mixtral mixture of experts models that excels at coding tasks. Created by Eric Hartford.",
-    "pull_count": "519.6K",
+    "pull_count": "519.8K",
     "tag_count": 70,
     "updated": "2 months ago",
     "capabilities": [],
@@ -15040,44 +15074,10 @@
     ]
   },
   {
-    "name": "bge-m3",
-    "url": "https://ollama.com/library/bge-m3",
-    "description": "BGE-M3 is a new model from BAAI distinguished for its versatility in Multi-Functionality, Multi-Linguality, and Multi-Granularity.",
-    "pull_count": "516.6K",
-    "tag_count": 3,
-    "updated": "7 months ago",
-    "capabilities": [
-      "embedding"
-    ],
-    "sizes": [
-      "567m"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "790764642607",
-        "size": "1.2GB",
-        "updated": "7 months ago"
-      },
-      {
-        "name": "567m",
-        "hash": "790764642607",
-        "size": "1.2GB",
-        "updated": "7 months ago"
-      },
-      {
-        "name": "567m-fp16",
-        "hash": "790764642607",
-        "size": "1.2GB",
-        "updated": "7 months ago"
-      }
-    ]
-  },
-  {
     "name": "openthinker",
     "url": "https://ollama.com/library/openthinker",
     "description": "A fully open-source family of reasoning models built using a dataset derived by distilling DeepSeek-R1.",
-    "pull_count": "507.5K",
+    "pull_count": "507.8K",
     "tag_count": 9,
     "updated": "3 weeks ago",
     "capabilities": [],
@@ -15146,7 +15146,7 @@
     "name": "phi",
     "url": "https://ollama.com/library/phi",
     "description": "Phi-2: a 2.7B language model by Microsoft Research that demonstrates outstanding reasoning and language understanding capabilities.",
-    "pull_count": "495.1K",
+    "pull_count": "495.3K",
     "tag_count": 18,
     "updated": "14 months ago",
     "capabilities": [],
@@ -15268,7 +15268,7 @@
     "name": "minicpm-v",
     "url": "https://ollama.com/library/minicpm-v",
     "description": "A series of multimodal LLMs (MLLMs) designed for vision-language understanding.",
-    "pull_count": "463.8K",
+    "pull_count": "470.8K",
     "tag_count": 17,
     "updated": "3 months ago",
     "capabilities": [
@@ -15386,7 +15386,7 @@
     "name": "llava-llama3",
     "url": "https://ollama.com/library/llava-llama3",
     "description": "A LLaVA model fine-tuned from Llama 3 Instruct with better scores in several benchmarks.",
-    "pull_count": "411.4K",
+    "pull_count": "415.1K",
     "tag_count": 4,
     "updated": "10 months ago",
     "capabilities": [
@@ -15426,7 +15426,7 @@
     "name": "wizardlm2",
     "url": "https://ollama.com/library/wizardlm2",
     "description": "State of the art large language model from Microsoft AI with improved performance on complex chat, multilingual, reasoning and agent use cases.",
-    "pull_count": "356K",
+    "pull_count": "356.1K",
     "tag_count": 22,
     "updated": "10 months ago",
     "capabilities": [],
@@ -15573,7 +15573,7 @@
     "name": "smollm2",
     "url": "https://ollama.com/library/smollm2",
     "description": "SmolLM2 is a family of compact language models available in three size: 135M, 360M, and 1.7B parameters.",
-    "pull_count": "334.9K",
+    "pull_count": "338.5K",
     "tag_count": 49,
     "updated": "4 months ago",
     "capabilities": [
@@ -15885,7 +15885,7 @@
     "name": "dolphin-mistral",
     "url": "https://ollama.com/library/dolphin-mistral",
     "description": "The uncensored Dolphin model based on Mistral that excels at coding tasks. Updated to version 2.8.",
-    "pull_count": "324.3K",
+    "pull_count": "324.4K",
     "tag_count": 120,
     "updated": "11 months ago",
     "capabilities": [],
@@ -16619,7 +16619,7 @@
     "name": "dolphin3",
     "url": "https://ollama.com/library/dolphin3",
     "description": "Dolphin 3.0 Llama 3.1 8B \ud83d\udc2c is the next generation of the Dolphin series of instruct-tuned models designed to be the ultimate general purpose local model, enabling coding, math, agentic, function calling, and general use cases.",
-    "pull_count": "316.8K",
+    "pull_count": "323.7K",
     "tag_count": 5,
     "updated": "2 months ago",
     "capabilities": [],
@@ -16663,7 +16663,7 @@
     "name": "all-minilm",
     "url": "https://ollama.com/library/all-minilm",
     "description": "Embedding models on very large sentence level datasets.",
-    "pull_count": "307K",
+    "pull_count": "307.4K",
     "tag_count": 10,
     "updated": "10 months ago",
     "capabilities": [
@@ -16740,7 +16740,7 @@
     "name": "dolphin-llama3",
     "url": "https://ollama.com/library/dolphin-llama3",
     "description": "Dolphin 2.9 is a new model with 8B and 70B sizes by Eric Hartford based on Llama 3 that has a variety of instruction, conversational, and coding skills.",
-    "pull_count": "291.2K",
+    "pull_count": "291.4K",
     "tag_count": 53,
     "updated": "10 months ago",
     "capabilities": [],
@@ -17073,7 +17073,7 @@
     "name": "olmo2",
     "url": "https://ollama.com/library/olmo2",
     "description": "OLMo 2 is a new family of 7B and 13B models trained on up to 5T tokens. These models are on par with or better than equivalently sized fully open models, and competitive with open-weight models such as Llama 3.1 on English academic benchmarks.",
-    "pull_count": "284.4K",
+    "pull_count": "291.1K",
     "tag_count": 9,
     "updated": "7 weeks ago",
     "capabilities": [],
@@ -17350,7 +17350,7 @@
     "name": "orca-mini",
     "url": "https://ollama.com/library/orca-mini",
     "description": "A general-purpose model ranging from 3 billion parameters to 70 billion, suitable for entry-level hardware.",
-    "pull_count": "276.5K",
+    "pull_count": "276.6K",
     "tag_count": 119,
     "updated": "16 months ago",
     "capabilities": [],
@@ -19138,10 +19138,153 @@
     ]
   },
   {
+    "name": "mistral-small",
+    "url": "https://ollama.com/library/mistral-small",
+    "description": "Mistral Small 3 sets a new benchmark in the \u201csmall\u201d Large Language Models category below 70B.",
+    "pull_count": "263.2K",
+    "tag_count": 21,
+    "updated": "5 weeks ago",
+    "capabilities": [
+      "tools"
+    ],
+    "sizes": [
+      "22b",
+      "24b"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "8039dd90c113",
+        "size": "14GB",
+        "updated": "5 weeks ago"
+      },
+      {
+        "name": "22b",
+        "hash": "d095cd553b04",
+        "size": "13GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "24b",
+        "hash": "8039dd90c113",
+        "size": "14GB",
+        "updated": "5 weeks ago"
+      },
+      {
+        "name": "22b-instruct-2409-fp16",
+        "hash": "28fc9c710e5f",
+        "size": "44GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q2_K",
+        "hash": "8ec9babc3847",
+        "size": "8.3GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q3_K_L",
+        "hash": "fe81dad8bbb0",
+        "size": "12GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q3_K_M",
+        "hash": "eaa764a8f77f",
+        "size": "11GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q3_K_S",
+        "hash": "dfaf3aefa53f",
+        "size": "9.6GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q4_0",
+        "hash": "d095cd553b04",
+        "size": "13GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q4_1",
+        "hash": "565c78387545",
+        "size": "14GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q4_K_M",
+        "hash": "9f552ae9b883",
+        "size": "13GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q4_K_S",
+        "hash": "9b3a8280f0c7",
+        "size": "13GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q5_0",
+        "hash": "04c315f44b8c",
+        "size": "15GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q5_1",
+        "hash": "5bd49ef5756a",
+        "size": "17GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q5_K_M",
+        "hash": "eec48ef9afdc",
+        "size": "16GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q5_K_S",
+        "hash": "5b4d9855bfa5",
+        "size": "15GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q6_K",
+        "hash": "5113380707de",
+        "size": "18GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "22b-instruct-2409-q8_0",
+        "hash": "ebe30125ec3c",
+        "size": "24GB",
+        "updated": "5 months ago"
+      },
+      {
+        "name": "24b-instruct-2501-fp16",
+        "hash": "6134e1a7e2c8",
+        "size": "47GB",
+        "updated": "5 weeks ago"
+      },
+      {
+        "name": "24b-instruct-2501-q4_K_M",
+        "hash": "8039dd90c113",
+        "size": "14GB",
+        "updated": "5 weeks ago"
+      },
+      {
+        "name": "24b-instruct-2501-q8_0",
+        "hash": "20ffe5db0161",
+        "size": "25GB",
+        "updated": "5 weeks ago"
+      }
+    ]
+  },
+  {
     "name": "hermes3",
     "url": "https://ollama.com/library/hermes3",
     "description": "Hermes 3 is the latest version of the flagship Hermes series of LLMs by Nous Research",
-    "pull_count": "262.8K",
+    "pull_count": "263K",
     "tag_count": 65,
     "updated": "2 months ago",
     "capabilities": [
@@ -19547,153 +19690,10 @@
     ]
   },
   {
-    "name": "mistral-small",
-    "url": "https://ollama.com/library/mistral-small",
-    "description": "Mistral Small 3 sets a new benchmark in the \u201csmall\u201d Large Language Models category below 70B.",
-    "pull_count": "259.3K",
-    "tag_count": 21,
-    "updated": "5 weeks ago",
-    "capabilities": [
-      "tools"
-    ],
-    "sizes": [
-      "22b",
-      "24b"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "8039dd90c113",
-        "size": "14GB",
-        "updated": "5 weeks ago"
-      },
-      {
-        "name": "22b",
-        "hash": "d095cd553b04",
-        "size": "13GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "24b",
-        "hash": "8039dd90c113",
-        "size": "14GB",
-        "updated": "5 weeks ago"
-      },
-      {
-        "name": "22b-instruct-2409-fp16",
-        "hash": "28fc9c710e5f",
-        "size": "44GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q2_K",
-        "hash": "8ec9babc3847",
-        "size": "8.3GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q3_K_L",
-        "hash": "fe81dad8bbb0",
-        "size": "12GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q3_K_M",
-        "hash": "eaa764a8f77f",
-        "size": "11GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q3_K_S",
-        "hash": "dfaf3aefa53f",
-        "size": "9.6GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q4_0",
-        "hash": "d095cd553b04",
-        "size": "13GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q4_1",
-        "hash": "565c78387545",
-        "size": "14GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q4_K_M",
-        "hash": "9f552ae9b883",
-        "size": "13GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q4_K_S",
-        "hash": "9b3a8280f0c7",
-        "size": "13GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q5_0",
-        "hash": "04c315f44b8c",
-        "size": "15GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q5_1",
-        "hash": "5bd49ef5756a",
-        "size": "17GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q5_K_M",
-        "hash": "eec48ef9afdc",
-        "size": "16GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q5_K_S",
-        "hash": "5b4d9855bfa5",
-        "size": "15GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q6_K",
-        "hash": "5113380707de",
-        "size": "18GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "22b-instruct-2409-q8_0",
-        "hash": "ebe30125ec3c",
-        "size": "24GB",
-        "updated": "5 months ago"
-      },
-      {
-        "name": "24b-instruct-2501-fp16",
-        "hash": "6134e1a7e2c8",
-        "size": "47GB",
-        "updated": "5 weeks ago"
-      },
-      {
-        "name": "24b-instruct-2501-q4_K_M",
-        "hash": "8039dd90c113",
-        "size": "14GB",
-        "updated": "5 weeks ago"
-      },
-      {
-        "name": "24b-instruct-2501-q8_0",
-        "hash": "20ffe5db0161",
-        "size": "25GB",
-        "updated": "5 weeks ago"
-      }
-    ]
-  },
-  {
     "name": "phi3.5",
     "url": "https://ollama.com/library/phi3.5",
     "description": "A lightweight AI model with 3.8 billion parameters with performance overtaking similarly and larger sized models.",
-    "pull_count": "247.9K",
+    "pull_count": "248.1K",
     "tag_count": 17,
     "updated": "6 months ago",
     "capabilities": [],
@@ -20064,7 +20064,7 @@
     "name": "codestral",
     "url": "https://ollama.com/library/codestral",
     "description": "Codestral is Mistral AI\u2019s first-ever code model designed for code generation tasks.",
-    "pull_count": "225.3K",
+    "pull_count": "225.6K",
     "tag_count": 17,
     "updated": "6 months ago",
     "capabilities": [],
@@ -20180,7 +20180,7 @@
     "name": "granite-code",
     "url": "https://ollama.com/library/granite-code",
     "description": "A family of open foundation models by IBM for Code Intelligence",
-    "pull_count": "190.3K",
+    "pull_count": "190.4K",
     "tag_count": 162,
     "updated": "6 months ago",
     "capabilities": [],
@@ -21169,7 +21169,7 @@
     "name": "starcoder",
     "url": "https://ollama.com/library/starcoder",
     "description": "StarCoder is a code generation model trained on 80+ programming languages.",
-    "pull_count": "186.9K",
+    "pull_count": "187K",
     "tag_count": 100,
     "updated": "16 months ago",
     "capabilities": [],
@@ -21786,7 +21786,7 @@
     "name": "smollm",
     "url": "https://ollama.com/library/smollm",
     "description": "\ud83e\ude90 A family of small models with 135M, 360M, and 1.7B parameters, trained on a new high-quality dataset.",
-    "pull_count": "184.6K",
+    "pull_count": "184.9K",
     "tag_count": 94,
     "updated": "6 months ago",
     "capabilities": [],
@@ -22366,7 +22366,7 @@
     "name": "wizard-vicuna-uncensored",
     "url": "https://ollama.com/library/wizard-vicuna-uncensored",
     "description": "Wizard Vicuna Uncensored is a 7B, 13B, and 30B parameter model based on Llama 2 uncensored by Eric Hartford.",
-    "pull_count": "184.4K",
+    "pull_count": "184.5K",
     "tag_count": 49,
     "updated": "16 months ago",
     "capabilities": [],
@@ -22676,7 +22676,7 @@
     "name": "vicuna",
     "url": "https://ollama.com/library/vicuna",
     "description": "General use chat model based on Llama and Llama 2 with 2K to 16K context sizes.",
-    "pull_count": "175.7K",
+    "pull_count": "175.8K",
     "tag_count": 111,
     "updated": "16 months ago",
     "capabilities": [],
@@ -23699,7 +23699,7 @@
     "name": "openchat",
     "url": "https://ollama.com/library/openchat",
     "description": "A family of open-source models trained on a wide variety of data, surpassing ChatGPT on various benchmarks. Updated to version 3.5-0106.",
-    "pull_count": "144.7K",
+    "pull_count": "144.8K",
     "tag_count": 50,
     "updated": "14 months ago",
     "capabilities": [],
@@ -24129,7 +24129,7 @@
     "name": "aya",
     "url": "https://ollama.com/library/aya",
     "description": "Aya 23, released by Cohere, is a new family of state-of-the-art, multilingual models that support 23 languages.",
-    "pull_count": "135.5K",
+    "pull_count": "135.6K",
     "tag_count": 33,
     "updated": "9 months ago",
     "capabilities": [],
@@ -24342,7 +24342,7 @@
     "name": "codeqwen",
     "url": "https://ollama.com/library/codeqwen",
     "description": "CodeQwen1.5 is a large language model pretrained on a large amount of code data.",
-    "pull_count": "131.3K",
+    "pull_count": "131.4K",
     "tag_count": 30,
     "updated": "8 months ago",
     "capabilities": [],
@@ -24536,7 +24536,7 @@
     "name": "deepseek-llm",
     "url": "https://ollama.com/library/deepseek-llm",
     "description": "An advanced language model crafted with 2 trillion bilingual tokens.",
-    "pull_count": "131K",
+    "pull_count": "131.1K",
     "tag_count": 64,
     "updated": "15 months ago",
     "capabilities": [],
@@ -24935,7 +24935,7 @@
     "name": "deepseek-v2",
     "url": "https://ollama.com/library/deepseek-v2",
     "description": "A strong, economical, and efficient Mixture-of-Experts language model.",
-    "pull_count": "126.4K",
+    "pull_count": "126.6K",
     "tag_count": 34,
     "updated": "8 months ago",
     "capabilities": [],
@@ -25362,7 +25362,7 @@
     "name": "glm4",
     "url": "https://ollama.com/library/glm4",
     "description": "A strong multi-lingual general language model with competitive performance to Llama 3.",
-    "pull_count": "122.6K",
+    "pull_count": "122.7K",
     "tag_count": 32,
     "updated": "8 months ago",
     "capabilities": [],
@@ -25565,223 +25565,10 @@
     ]
   },
   {
-    "name": "nous-hermes2",
-    "url": "https://ollama.com/library/nous-hermes2",
-    "description": "The powerful family of models by Nous Research that excels at scientific discussion and coding tasks.",
-    "pull_count": "121.6K",
-    "tag_count": 33,
-    "updated": "14 months ago",
-    "capabilities": [],
-    "sizes": [
-      "10.7b",
-      "34b"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "d50977d0b36a",
-        "size": "6.1GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b",
-        "hash": "d50977d0b36a",
-        "size": "6.1GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b",
-        "hash": "1fbb49caabbd",
-        "size": "19GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-fp16",
-        "hash": "d1a6005a734e",
-        "size": "21GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q2_K",
-        "hash": "2931d5c846b2",
-        "size": "4.5GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q3_K_L",
-        "hash": "36b57986a223",
-        "size": "5.7GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q3_K_M",
-        "hash": "20bed3473bc5",
-        "size": "5.2GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q3_K_S",
-        "hash": "5b55664515d5",
-        "size": "4.7GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q4_0",
-        "hash": "d50977d0b36a",
-        "size": "6.1GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q4_1",
-        "hash": "7486b76cccbc",
-        "size": "6.7GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q4_K_M",
-        "hash": "3901698f9529",
-        "size": "6.5GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q4_K_S",
-        "hash": "674107bfb50e",
-        "size": "6.1GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q5_0",
-        "hash": "9b7a0ddf5539",
-        "size": "7.4GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q5_1",
-        "hash": "ade17e89ce44",
-        "size": "8.1GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q5_K_M",
-        "hash": "c21ad0ffb1e8",
-        "size": "7.6GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q5_K_S",
-        "hash": "b0a593650c5a",
-        "size": "7.4GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q6_K",
-        "hash": "46a4c005c00c",
-        "size": "8.8GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "10.7b-solar-q8_0",
-        "hash": "04509546373b",
-        "size": "11GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-fp16",
-        "hash": "ba6742bba2e3",
-        "size": "69GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q2_K",
-        "hash": "5880153d6216",
-        "size": "15GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q3_K_L",
-        "hash": "d9e569fe62f4",
-        "size": "18GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q3_K_M",
-        "hash": "f2531c88caf1",
-        "size": "17GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q3_K_S",
-        "hash": "0bc80f2f5fd8",
-        "size": "15GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q4_0",
-        "hash": "1fbb49caabbd",
-        "size": "19GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q4_1",
-        "hash": "692a7d97562c",
-        "size": "22GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q4_K_M",
-        "hash": "d0e1b2a20bbd",
-        "size": "21GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q4_K_S",
-        "hash": "83c068cc2a03",
-        "size": "20GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q5_0",
-        "hash": "b3a3236a26f1",
-        "size": "24GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q5_1",
-        "hash": "9a77070e0a87",
-        "size": "26GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q5_K_M",
-        "hash": "9f0dea62722f",
-        "size": "24GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q5_K_S",
-        "hash": "8f6909b8327b",
-        "size": "24GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q6_K",
-        "hash": "2e9855cc9f21",
-        "size": "28GB",
-        "updated": "14 months ago"
-      },
-      {
-        "name": "34b-yi-q8_0",
-        "hash": "a1e70aa6a163",
-        "size": "37GB",
-        "updated": "14 months ago"
-      }
-    ]
-  },
-  {
     "name": "stable-code",
     "url": "https://ollama.com/library/stable-code",
     "description": "Stable Code 3B is a coding model with instruct and code completion variants on par with models such as Code Llama 7B that are 2.5x larger.",
-    "pull_count": "121.6K",
+    "pull_count": "121.7K",
     "tag_count": 36,
     "updated": "11 months ago",
     "capabilities": [],
@@ -26004,6 +25791,219 @@
         "hash": "37681d29a55a",
         "size": "1.6GB",
         "updated": "11 months ago"
+      }
+    ]
+  },
+  {
+    "name": "nous-hermes2",
+    "url": "https://ollama.com/library/nous-hermes2",
+    "description": "The powerful family of models by Nous Research that excels at scientific discussion and coding tasks.",
+    "pull_count": "121.6K",
+    "tag_count": 33,
+    "updated": "14 months ago",
+    "capabilities": [],
+    "sizes": [
+      "10.7b",
+      "34b"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "d50977d0b36a",
+        "size": "6.1GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b",
+        "hash": "d50977d0b36a",
+        "size": "6.1GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b",
+        "hash": "1fbb49caabbd",
+        "size": "19GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-fp16",
+        "hash": "d1a6005a734e",
+        "size": "21GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q2_K",
+        "hash": "2931d5c846b2",
+        "size": "4.5GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q3_K_L",
+        "hash": "36b57986a223",
+        "size": "5.7GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q3_K_M",
+        "hash": "20bed3473bc5",
+        "size": "5.2GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q3_K_S",
+        "hash": "5b55664515d5",
+        "size": "4.7GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q4_0",
+        "hash": "d50977d0b36a",
+        "size": "6.1GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q4_1",
+        "hash": "7486b76cccbc",
+        "size": "6.7GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q4_K_M",
+        "hash": "3901698f9529",
+        "size": "6.5GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q4_K_S",
+        "hash": "674107bfb50e",
+        "size": "6.1GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q5_0",
+        "hash": "9b7a0ddf5539",
+        "size": "7.4GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q5_1",
+        "hash": "ade17e89ce44",
+        "size": "8.1GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q5_K_M",
+        "hash": "c21ad0ffb1e8",
+        "size": "7.6GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q5_K_S",
+        "hash": "b0a593650c5a",
+        "size": "7.4GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q6_K",
+        "hash": "46a4c005c00c",
+        "size": "8.8GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "10.7b-solar-q8_0",
+        "hash": "04509546373b",
+        "size": "11GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-fp16",
+        "hash": "ba6742bba2e3",
+        "size": "69GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q2_K",
+        "hash": "5880153d6216",
+        "size": "15GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q3_K_L",
+        "hash": "d9e569fe62f4",
+        "size": "18GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q3_K_M",
+        "hash": "f2531c88caf1",
+        "size": "17GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q3_K_S",
+        "hash": "0bc80f2f5fd8",
+        "size": "15GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q4_0",
+        "hash": "1fbb49caabbd",
+        "size": "19GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q4_1",
+        "hash": "692a7d97562c",
+        "size": "22GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q4_K_M",
+        "hash": "d0e1b2a20bbd",
+        "size": "21GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q4_K_S",
+        "hash": "83c068cc2a03",
+        "size": "20GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q5_0",
+        "hash": "b3a3236a26f1",
+        "size": "24GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q5_1",
+        "hash": "9a77070e0a87",
+        "size": "26GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q5_K_M",
+        "hash": "9f0dea62722f",
+        "size": "24GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q5_K_S",
+        "hash": "8f6909b8327b",
+        "size": "24GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q6_K",
+        "hash": "2e9855cc9f21",
+        "size": "28GB",
+        "updated": "14 months ago"
+      },
+      {
+        "name": "34b-yi-q8_0",
+        "hash": "a1e70aa6a163",
+        "size": "37GB",
+        "updated": "14 months ago"
       }
     ]
   },
@@ -26561,7 +26561,7 @@
     "name": "tinydolphin",
     "url": "https://ollama.com/library/tinydolphin",
     "description": "An experimental 1.1B parameter model trained on the new Dolphin 2.8 dataset by Eric Hartford and based on TinyLlama.",
-    "pull_count": "119.8K",
+    "pull_count": "119.9K",
     "tag_count": 18,
     "updated": "13 months ago",
     "capabilities": [],
@@ -27241,7 +27241,7 @@
     "name": "moondream",
     "url": "https://ollama.com/library/moondream",
     "description": "moondream2 is a small vision language model designed to run efficiently on edge devices.",
-    "pull_count": "112.4K",
+    "pull_count": "112.5K",
     "tag_count": 18,
     "updated": "10 months ago",
     "capabilities": [
@@ -27483,7 +27483,7 @@
     "name": "stablelm2",
     "url": "https://ollama.com/library/stablelm2",
     "description": "Stable LM 2 is a state-of-the-art 1.6B and 12B parameter language model trained on multilingual data in English, Spanish, German, Italian, French, Portuguese, and Dutch.",
-    "pull_count": "107.6K",
+    "pull_count": "107.7K",
     "tag_count": 84,
     "updated": "10 months ago",
     "capabilities": [],
@@ -28432,7 +28432,7 @@
     "name": "wizard-math",
     "url": "https://ollama.com/library/wizard-math",
     "description": "Model focused on math and logic problems",
-    "pull_count": "100.8K",
+    "pull_count": "100.9K",
     "tag_count": 64,
     "updated": "14 months ago",
     "capabilities": [],
@@ -29282,7 +29282,7 @@
     "name": "sqlcoder",
     "url": "https://ollama.com/library/sqlcoder",
     "description": "SQLCoder is a code completion model fined-tuned on StarCoder for SQL generation tasks",
-    "pull_count": "92.7K",
+    "pull_count": "92.8K",
     "tag_count": 48,
     "updated": "13 months ago",
     "capabilities": [],
@@ -29585,7 +29585,7 @@
     "name": "bge-large",
     "url": "https://ollama.com/library/bge-large",
     "description": "Embedding model from BAAI mapping texts to vectors.",
-    "pull_count": "88K",
+    "pull_count": "88.2K",
     "tag_count": 3,
     "updated": "7 months ago",
     "capabilities": [
@@ -30339,7 +30339,7 @@
     "name": "samantha-mistral",
     "url": "https://ollama.com/library/samantha-mistral",
     "description": "A companion assistant trained in philosophy, psychology, and personal relationships. Based on Mistral.",
-    "pull_count": "82.5K",
+    "pull_count": "83.2K",
     "tag_count": 49,
     "updated": "16 months ago",
     "capabilities": [],
@@ -31348,7 +31348,7 @@
     "name": "llava-phi3",
     "url": "https://ollama.com/library/llava-phi3",
     "description": "A new small LLaVA model fine-tuned from Phi 3 Mini.",
-    "pull_count": "80.7K",
+    "pull_count": "80.8K",
     "tag_count": 4,
     "updated": "10 months ago",
     "capabilities": [
@@ -31388,7 +31388,7 @@
     "name": "granite3.1-dense",
     "url": "https://ollama.com/library/granite3.1-dense",
     "description": "The IBM Granite 2B and 8B models are text-only dense LLMs trained on over 12 trillion tokens of data, demonstrated significant improvements over their predecessors in performance and speed in IBM\u2019s initial testing.",
-    "pull_count": "80.3K",
+    "pull_count": "80.4K",
     "tag_count": 33,
     "updated": "6 weeks ago",
     "capabilities": [
@@ -33441,7 +33441,7 @@
     "name": "internlm2",
     "url": "https://ollama.com/library/internlm2",
     "description": "InternLM2.5 is a 7B parameter model tailored for practical scenarios with outstanding reasoning capability.",
-    "pull_count": "73.5K",
+    "pull_count": "73.6K",
     "tag_count": 65,
     "updated": "6 months ago",
     "capabilities": [],
@@ -33916,7 +33916,7 @@
         "name": "40b-instruct-fp16",
         "hash": "7cbd92dfea70",
         "size": "84GB",
-        "updated": "17 months ago"
+        "updated": "18 months ago"
       },
       {
         "name": "40b-instruct-q4_0",
@@ -34092,7 +34092,7 @@
     "name": "nemotron-mini",
     "url": "https://ollama.com/library/nemotron-mini",
     "description": "A commercial-friendly small language model by NVIDIA optimized for roleplay, RAG QA, and function calling.",
-    "pull_count": "69K",
+    "pull_count": "69.1K",
     "tag_count": 17,
     "updated": "5 months ago",
     "capabilities": [
@@ -34210,7 +34210,7 @@
     "name": "nemotron",
     "url": "https://ollama.com/library/nemotron",
     "description": "Llama-3.1-Nemotron-70B-Instruct is a large language model customized by NVIDIA to improve the helpfulness of LLM generated responses to user queries.",
-    "pull_count": "66.5K",
+    "pull_count": "66.6K",
     "tag_count": 17,
     "updated": "4 months ago",
     "capabilities": [
@@ -34432,7 +34432,7 @@
     "name": "deepscaler",
     "url": "https://ollama.com/library/deepscaler",
     "description": "A fine-tuned version of Deepseek-R1-Distilled-Qwen-1.5B that surpasses the performance of OpenAI\u2019s o1-preview with just 1.5B parameters on popular math evaluations.",
-    "pull_count": "64.3K",
+    "pull_count": "64.5K",
     "tag_count": 5,
     "updated": "3 weeks ago",
     "capabilities": [],
@@ -35121,7 +35121,7 @@
     "name": "granite3-dense",
     "url": "https://ollama.com/library/granite3-dense",
     "description": "The IBM Granite 2B and 8B models are designed to support tool-based use cases and support for retrieval augmented generation (RAG), streamlining code generation, translation and bug fixing.",
-    "pull_count": "57.1K",
+    "pull_count": "57.2K",
     "tag_count": 33,
     "updated": "3 months ago",
     "capabilities": [
@@ -35336,7 +35336,7 @@
     "name": "llama3-groq-tool-use",
     "url": "https://ollama.com/library/llama3-groq-tool-use",
     "description": "A series of models from Groq that represent a significant advancement in open-source AI capabilities for tool use/function calling.",
-    "pull_count": "55.3K",
+    "pull_count": "55.4K",
     "tag_count": 33,
     "updated": "7 months ago",
     "capabilities": [
@@ -35904,7 +35904,7 @@
     "name": "smallthinker",
     "url": "https://ollama.com/library/smallthinker",
     "description": "A new small reasoning model fine-tuned from the Qwen 2.5 3B Instruct model.",
-    "pull_count": "47.1K",
+    "pull_count": "47.2K",
     "tag_count": 5,
     "updated": "2 months ago",
     "capabilities": [],
@@ -35948,7 +35948,7 @@
     "name": "aya-expanse",
     "url": "https://ollama.com/library/aya-expanse",
     "description": "Cohere For AI's language models trained to perform well across 23 different languages.",
-    "pull_count": "45.8K",
+    "pull_count": "45.9K",
     "tag_count": 33,
     "updated": "4 months ago",
     "capabilities": [
@@ -36585,7 +36585,7 @@
     "name": "granite3-moe",
     "url": "https://ollama.com/library/granite3-moe",
     "description": "The IBM Granite 1B and 3B models are the first mixture of experts (MoE) Granite models from IBM designed for low latency usage.",
-    "pull_count": "43.9K",
+    "pull_count": "44K",
     "tag_count": 33,
     "updated": "3 months ago",
     "capabilities": [
@@ -37006,7 +37006,7 @@
     "name": "falcon3",
     "url": "https://ollama.com/library/falcon3",
     "description": "A family of efficient AI models under 10B parameters performant in science, math, and coding through innovative training techniques.",
-    "pull_count": "41.2K",
+    "pull_count": "41.3K",
     "tag_count": 17,
     "updated": "2 months ago",
     "capabilities": [],
@@ -37494,6 +37494,40 @@
     ]
   },
   {
+    "name": "snowflake-arctic-embed2",
+    "url": "https://ollama.com/library/snowflake-arctic-embed2",
+    "description": "Snowflake's frontier embedding model. Arctic Embed 2.0 adds multilingual support without sacrificing English performance or scalability.",
+    "pull_count": "35.7K",
+    "tag_count": 3,
+    "updated": "3 months ago",
+    "capabilities": [
+      "embedding"
+    ],
+    "sizes": [
+      "568m"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "5de93a84837d",
+        "size": "1.2GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "568m",
+        "hash": "5de93a84837d",
+        "size": "1.2GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "568m-l-fp16",
+        "hash": "5de93a84837d",
+        "size": "1.2GB",
+        "updated": "3 months ago"
+      }
+    ]
+  },
+  {
     "name": "shieldgemma",
     "url": "https://ollama.com/library/shieldgemma",
     "description": "ShieldGemma is set of instruction tuned models for evaluating the safety of text prompt input and text output responses against a set of defined safety policies.",
@@ -37804,44 +37838,10 @@
     ]
   },
   {
-    "name": "snowflake-arctic-embed2",
-    "url": "https://ollama.com/library/snowflake-arctic-embed2",
-    "description": "Snowflake's frontier embedding model. Arctic Embed 2.0 adds multilingual support without sacrificing English performance or scalability.",
-    "pull_count": "35.5K",
-    "tag_count": 3,
-    "updated": "3 months ago",
-    "capabilities": [
-      "embedding"
-    ],
-    "sizes": [
-      "568m"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "5de93a84837d",
-        "size": "1.2GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "568m",
-        "hash": "5de93a84837d",
-        "size": "1.2GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "568m-l-fp16",
-        "hash": "5de93a84837d",
-        "size": "1.2GB",
-        "updated": "3 months ago"
-      }
-    ]
-  },
-  {
     "name": "granite3.1-moe",
     "url": "https://ollama.com/library/granite3.1-moe",
     "description": "The IBM Granite 1B and 3B models are long-context mixture of experts (MoE) Granite models from IBM designed for low latency usage.",
-    "pull_count": "34.8K",
+    "pull_count": "34.9K",
     "tag_count": 33,
     "updated": "6 weeks ago",
     "capabilities": [
@@ -38056,7 +38056,7 @@
     "name": "marco-o1",
     "url": "https://ollama.com/library/marco-o1",
     "description": "An open large reasoning model for real-world solutions by the Alibaba International Digital Commerce Group (AIDC-AI).",
-    "pull_count": "32.9K",
+    "pull_count": "33K",
     "tag_count": 5,
     "updated": "3 months ago",
     "capabilities": [],
@@ -38100,7 +38100,7 @@
     "name": "mathstral",
     "url": "https://ollama.com/library/mathstral",
     "description": "Math\u03a3tral: a 7B model designed for math reasoning and scientific discovery by Mistral AI.",
-    "pull_count": "32.3K",
+    "pull_count": "32.4K",
     "tag_count": 17,
     "updated": "7 months ago",
     "capabilities": [],
@@ -38329,128 +38329,6 @@
     ]
   },
   {
-    "name": "magicoder",
-    "url": "https://ollama.com/library/magicoder",
-    "description": "\ud83c\udfa9 Magicoder is a family of 7B parameter models trained on 75K synthetic instruction data using OSS-Instruct, a novel approach to enlightening LLMs with open-source code snippets.",
-    "pull_count": "32K",
-    "tag_count": 18,
-    "updated": "15 months ago",
-    "capabilities": [],
-    "sizes": [
-      "7b"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "8007de06f5d9",
-        "size": "3.8GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b",
-        "hash": "8007de06f5d9",
-        "size": "3.8GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl",
-        "hash": "8007de06f5d9",
-        "size": "3.8GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-fp16",
-        "hash": "859e1ae4f566",
-        "size": "13GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q2_K",
-        "hash": "86fd329c64b6",
-        "size": "2.8GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q3_K_L",
-        "hash": "2bf1232fd9c1",
-        "size": "3.6GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q3_K_M",
-        "hash": "b2a3d9987ff3",
-        "size": "3.3GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q3_K_S",
-        "hash": "b7e2d7a303f8",
-        "size": "2.9GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q4_0",
-        "hash": "8007de06f5d9",
-        "size": "3.8GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q4_1",
-        "hash": "b29bf322a686",
-        "size": "4.2GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q4_K_M",
-        "hash": "902b6b028113",
-        "size": "4.1GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q4_K_S",
-        "hash": "42b56dd9b1da",
-        "size": "3.9GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q5_0",
-        "hash": "10fa66c827ee",
-        "size": "4.7GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q5_1",
-        "hash": "7da1fdad5251",
-        "size": "5.1GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q5_K_M",
-        "hash": "057c4f587f41",
-        "size": "4.8GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q5_K_S",
-        "hash": "ce0b81d40da6",
-        "size": "4.7GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q6_K",
-        "hash": "cf853951ae4a",
-        "size": "5.5GB",
-        "updated": "15 months ago"
-      },
-      {
-        "name": "7b-s-cl-q8_0",
-        "hash": "96b5e4193464",
-        "size": "7.2GB",
-        "updated": "15 months ago"
-      }
-    ]
-  },
-  {
     "name": "reader-lm",
     "url": "https://ollama.com/library/reader-lm",
     "description": "A series of models that convert HTML content to Markdown content, which is useful for content conversion tasks.",
@@ -38664,6 +38542,128 @@
     ]
   },
   {
+    "name": "magicoder",
+    "url": "https://ollama.com/library/magicoder",
+    "description": "\ud83c\udfa9 Magicoder is a family of 7B parameter models trained on 75K synthetic instruction data using OSS-Instruct, a novel approach to enlightening LLMs with open-source code snippets.",
+    "pull_count": "32K",
+    "tag_count": 18,
+    "updated": "15 months ago",
+    "capabilities": [],
+    "sizes": [
+      "7b"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "8007de06f5d9",
+        "size": "3.8GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b",
+        "hash": "8007de06f5d9",
+        "size": "3.8GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl",
+        "hash": "8007de06f5d9",
+        "size": "3.8GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-fp16",
+        "hash": "859e1ae4f566",
+        "size": "13GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q2_K",
+        "hash": "86fd329c64b6",
+        "size": "2.8GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q3_K_L",
+        "hash": "2bf1232fd9c1",
+        "size": "3.6GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q3_K_M",
+        "hash": "b2a3d9987ff3",
+        "size": "3.3GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q3_K_S",
+        "hash": "b7e2d7a303f8",
+        "size": "2.9GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q4_0",
+        "hash": "8007de06f5d9",
+        "size": "3.8GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q4_1",
+        "hash": "b29bf322a686",
+        "size": "4.2GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q4_K_M",
+        "hash": "902b6b028113",
+        "size": "4.1GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q4_K_S",
+        "hash": "42b56dd9b1da",
+        "size": "3.9GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q5_0",
+        "hash": "10fa66c827ee",
+        "size": "4.7GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q5_1",
+        "hash": "7da1fdad5251",
+        "size": "5.1GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q5_K_M",
+        "hash": "057c4f587f41",
+        "size": "4.8GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q5_K_S",
+        "hash": "ce0b81d40da6",
+        "size": "4.7GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q6_K",
+        "hash": "cf853951ae4a",
+        "size": "5.5GB",
+        "updated": "15 months ago"
+      },
+      {
+        "name": "7b-s-cl-q8_0",
+        "hash": "96b5e4193464",
+        "size": "7.2GB",
+        "updated": "15 months ago"
+      }
+    ]
+  },
+  {
     "name": "stablelm-zephyr",
     "url": "https://ollama.com/library/stablelm-zephyr",
     "description": "A lightweight chat model allowing accurate, and responsive output without requiring high-end hardware.",
@@ -38783,7 +38783,7 @@
     "name": "solar-pro",
     "url": "https://ollama.com/library/solar-pro",
     "description": "Solar Pro Preview: an advanced large language model (LLM) with 22 billion parameters designed to fit into a single GPU",
-    "pull_count": "31.7K",
+    "pull_count": "31.8K",
     "tag_count": 18,
     "updated": "5 months ago",
     "capabilities": [],
@@ -39576,7 +39576,7 @@
     "name": "exaone3.5",
     "url": "https://ollama.com/library/exaone3.5",
     "description": "EXAONE 3.5 is a collection of instruction-tuned bilingual (English and Korean) generative models ranging from 2.4B to 32B parameters, developed and released by LG AI Research.",
-    "pull_count": "27.8K",
+    "pull_count": "27.9K",
     "tag_count": 13,
     "updated": "2 months ago",
     "capabilities": [],
@@ -39667,79 +39667,10 @@
     ]
   },
   {
-    "name": "opencoder",
-    "url": "https://ollama.com/library/opencoder",
-    "description": "OpenCoder is an open and reproducible code LLM family which includes 1.5B and 8B models, supporting chat in English and Chinese languages.",
-    "pull_count": "25.7K",
-    "tag_count": 9,
-    "updated": "3 months ago",
-    "capabilities": [],
-    "sizes": [
-      "1.5b",
-      "8b"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "cd882db52297",
-        "size": "4.7GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "1.5b",
-        "hash": "8573dfc23c16",
-        "size": "1.4GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "8b",
-        "hash": "cd882db52297",
-        "size": "4.7GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "1.5b-instruct-fp16",
-        "hash": "466920be6f15",
-        "size": "3.8GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "1.5b-instruct-q4_K_M",
-        "hash": "8573dfc23c16",
-        "size": "1.4GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "1.5b-instruct-q8_0",
-        "hash": "8c1234514258",
-        "size": "2.0GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "8b-instruct-fp16",
-        "hash": "51ed11a37a94",
-        "size": "16GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "8b-instruct-q4_K_M",
-        "hash": "cd882db52297",
-        "size": "4.7GB",
-        "updated": "3 months ago"
-      },
-      {
-        "name": "8b-instruct-q8_0",
-        "hash": "b43cccd5b8e1",
-        "size": "8.3GB",
-        "updated": "3 months ago"
-      }
-    ]
-  },
-  {
     "name": "nuextract",
     "url": "https://ollama.com/library/nuextract",
     "description": "A 3.8B model fine-tuned on a private high-quality synthetic dataset for information extraction, based on Phi-3.",
-    "pull_count": "25.6K",
+    "pull_count": "25.7K",
     "tag_count": 17,
     "updated": "7 months ago",
     "capabilities": [],
@@ -39848,6 +39779,75 @@
         "hash": "fac3a7e1b11b",
         "size": "4.1GB",
         "updated": "7 months ago"
+      }
+    ]
+  },
+  {
+    "name": "opencoder",
+    "url": "https://ollama.com/library/opencoder",
+    "description": "OpenCoder is an open and reproducible code LLM family which includes 1.5B and 8B models, supporting chat in English and Chinese languages.",
+    "pull_count": "25.7K",
+    "tag_count": 9,
+    "updated": "3 months ago",
+    "capabilities": [],
+    "sizes": [
+      "1.5b",
+      "8b"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "cd882db52297",
+        "size": "4.7GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "1.5b",
+        "hash": "8573dfc23c16",
+        "size": "1.4GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "8b",
+        "hash": "cd882db52297",
+        "size": "4.7GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "1.5b-instruct-fp16",
+        "hash": "466920be6f15",
+        "size": "3.8GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "1.5b-instruct-q4_K_M",
+        "hash": "8573dfc23c16",
+        "size": "1.4GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "1.5b-instruct-q8_0",
+        "hash": "8c1234514258",
+        "size": "2.0GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "8b-instruct-fp16",
+        "hash": "51ed11a37a94",
+        "size": "16GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "8b-instruct-q4_K_M",
+        "hash": "cd882db52297",
+        "size": "4.7GB",
+        "updated": "3 months ago"
+      },
+      {
+        "name": "8b-instruct-q8_0",
+        "hash": "b43cccd5b8e1",
+        "size": "8.3GB",
+        "updated": "3 months ago"
       }
     ]
   },
@@ -40343,7 +40343,7 @@
     "name": "command-r7b",
     "url": "https://ollama.com/library/command-r7b",
     "description": "The smallest model in Cohere's R series delivers top-tier speed, efficiency, and quality to build powerful AI applications on commodity GPUs and edge devices.",
-    "pull_count": "23.4K",
+    "pull_count": "23.5K",
     "tag_count": 5,
     "updated": "7 weeks ago",
     "capabilities": [
@@ -40610,10 +40610,56 @@
     ]
   },
   {
+    "name": "phi4-mini",
+    "url": "https://ollama.com/library/phi4-mini",
+    "description": "Phi-4-mini brings significant enhancements in multilingual support, reasoning, and mathematics, and now, the long-awaited function calling feature is finally supported.",
+    "pull_count": "20.8K",
+    "tag_count": 5,
+    "updated": "6 days ago",
+    "capabilities": [
+      "tools"
+    ],
+    "sizes": [
+      "3.8b"
+    ],
+    "tags": [
+      {
+        "name": "latest",
+        "hash": "78fad5d182a7",
+        "size": "2.5GB",
+        "updated": "6 days ago"
+      },
+      {
+        "name": "3.8b",
+        "hash": "78fad5d182a7",
+        "size": "2.5GB",
+        "updated": "6 days ago"
+      },
+      {
+        "name": "3.8b-fp16",
+        "hash": "bd71721a0e80",
+        "size": "7.7GB",
+        "updated": "6 days ago"
+      },
+      {
+        "name": "3.8b-q4_K_M",
+        "hash": "78fad5d182a7",
+        "size": "2.5GB",
+        "updated": "6 days ago"
+      },
+      {
+        "name": "3.8b-q8_0",
+        "hash": "0be8e6979181",
+        "size": "4.1GB",
+        "updated": "6 days ago"
+      }
+    ]
+  },
+  {
     "name": "granite-embedding",
     "url": "https://ollama.com/library/granite-embedding",
     "description": "The IBM Granite Embedding 30M and 278M models models are text-only dense biencoder embedding models, with 30M available in English only and 278M serving multilingual use cases.",
-    "pull_count": "19.9K",
+    "pull_count": "20K",
     "tag_count": 6,
     "updated": "2 months ago",
     "capabilities": [
@@ -40659,52 +40705,6 @@
         "hash": "eb4c533ba6f7",
         "size": "63MB",
         "updated": "2 months ago"
-      }
-    ]
-  },
-  {
-    "name": "phi4-mini",
-    "url": "https://ollama.com/library/phi4-mini",
-    "description": "Phi-4-mini brings significant enhancements in multilingual support, reasoning, and mathematics, and now, the long-awaited function calling feature is finally supported.",
-    "pull_count": "19.8K",
-    "tag_count": 5,
-    "updated": "6 days ago",
-    "capabilities": [
-      "tools"
-    ],
-    "sizes": [
-      "3.8b"
-    ],
-    "tags": [
-      {
-        "name": "latest",
-        "hash": "78fad5d182a7",
-        "size": "2.5GB",
-        "updated": "6 days ago"
-      },
-      {
-        "name": "3.8b",
-        "hash": "78fad5d182a7",
-        "size": "2.5GB",
-        "updated": "6 days ago"
-      },
-      {
-        "name": "3.8b-fp16",
-        "hash": "bd71721a0e80",
-        "size": "7.7GB",
-        "updated": "6 days ago"
-      },
-      {
-        "name": "3.8b-q4_K_M",
-        "hash": "78fad5d182a7",
-        "size": "2.5GB",
-        "updated": "6 days ago"
-      },
-      {
-        "name": "3.8b-q8_0",
-        "hash": "0be8e6979181",
-        "size": "4.1GB",
-        "updated": "6 days ago"
       }
     ]
   },
@@ -41086,9 +41086,9 @@
     "name": "r1-1776",
     "url": "https://ollama.com/library/r1-1776",
     "description": "A version of the DeepSeek-R1 model that has been post trained to provide unbiased, accurate, and factual information by Perplexity.",
-    "pull_count": "14.5K",
+    "pull_count": "14.7K",
     "tag_count": 9,
-    "updated": "13 days ago",
+    "updated": "2 weeks ago",
     "capabilities": [],
     "sizes": [
       "70b",
@@ -41099,55 +41099,55 @@
         "name": "latest",
         "hash": "140ea940f21d",
         "size": "43GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "70b",
         "hash": "140ea940f21d",
         "size": "43GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "671b",
         "hash": "dfa713736c7b",
         "size": "404GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "671b-fp16",
         "hash": "eef5438a1488",
         "size": "",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "671b-q4_K_M",
         "hash": "dfa713736c7b",
         "size": "404GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "671b-q8_0",
         "hash": "83aca4100872",
         "size": "713GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "70b-distill-llama-fp16",
         "hash": "b6dc7e0e17ed",
         "size": "141GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "70b-distill-llama-q4_K_M",
         "hash": "140ea940f21d",
         "size": "43GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       },
       {
         "name": "70b-distill-llama-q8_0",
         "hash": "e19a3de39ed7",
         "size": "75GB",
-        "updated": "13 days ago"
+        "updated": "2 weeks ago"
       }
     ]
   },
@@ -41155,9 +41155,9 @@
     "name": "granite3.2",
     "url": "https://ollama.com/library/granite3.2",
     "description": "Granite-3.2 is a family of long-context AI models from IBM Granite fine-tuned for thinking capabilities.",
-    "pull_count": "12.5K",
+    "pull_count": "12.9K",
     "tag_count": 9,
-    "updated": "8 days ago",
+    "updated": "9 days ago",
     "capabilities": [
       "tools"
     ],
@@ -41170,55 +41170,55 @@
         "name": "latest",
         "hash": "9bcb3335083f",
         "size": "4.9GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "2b",
         "hash": "9d79a41f2f75",
         "size": "1.5GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "8b",
         "hash": "9bcb3335083f",
         "size": "4.9GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "2b-instruct-fp16",
         "hash": "c86bd0b2f0bd",
         "size": "5.1GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "2b-instruct-q4_K_M",
         "hash": "9d79a41f2f75",
         "size": "1.5GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "2b-instruct-q8_0",
         "hash": "f6f4d0d4b4fa",
         "size": "2.7GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "8b-instruct-fp16",
         "hash": "b9679f6ae759",
         "size": "16GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "8b-instruct-q4_K_M",
         "hash": "9bcb3335083f",
         "size": "4.9GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       },
       {
         "name": "8b-instruct-q8_0",
         "hash": "1b54499df0ff",
         "size": "8.7GB",
-        "updated": "8 days ago"
+        "updated": "9 days ago"
       }
     ]
   },
@@ -41226,7 +41226,7 @@
     "name": "granite3.2-vision",
     "url": "https://ollama.com/library/granite3.2-vision",
     "description": "A compact and efficient vision-language model, specifically designed for visual document understanding, enabling automated content extraction from tables, charts, infographics, plots, diagrams, and more.",
-    "pull_count": "9,889",
+    "pull_count": "10.4K",
     "tag_count": 5,
     "updated": "7 days ago",
     "capabilities": [
@@ -41273,7 +41273,7 @@
     "name": "sailor2",
     "url": "https://ollama.com/library/sailor2",
     "description": "Sailor2 are multilingual language models made for South-East Asia. Available in 1B, 8B, and 20B parameter sizes.",
-    "pull_count": "9,608",
+    "pull_count": "9,618",
     "tag_count": 13,
     "updated": "3 months ago",
     "capabilities": [],
@@ -41367,7 +41367,7 @@
     "name": "command-r7b-arabic",
     "url": "https://ollama.com/library/command-r7b-arabic",
     "description": "A new state-of-the-art version of the lightweight Command R7B model that excels in advanced Arabic language capabilities for enterprises in the Middle East and Northern Africa.",
-    "pull_count": "2,922",
+    "pull_count": "2,979",
     "tag_count": 5,
     "updated": "6 days ago",
     "capabilities": [
