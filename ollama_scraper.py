@@ -89,6 +89,52 @@ class OllamaScraper:
         logging.info(f"Found {len(models)} models")
         return models
     
+    def get_model_tags(self, model_name):
+        """Get tags for a specific model"""
+        tags_url = f"{self.BASE_URL}/library/{model_name}/tags"
+        logging.info(f"Fetching tags for model: {model_name} from {tags_url}")
+        
+        response = self.session.get(tags_url)
+        if response.status_code != 200:
+            logging.error(f"Failed to fetch tags for {model_name}: {response.status_code}")
+            return []
+            
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        tags = []
+        tag_elements = soup.select('div.flex.px-4.py-3')
+        
+        for element in tag_elements:
+            tag_link = element.select_one('a')
+            if not tag_link:
+                continue
+                
+            tag_name_elem = tag_link.select_one('div.break-all')
+            tag_name = tag_name_elem.text.strip() if tag_name_elem else ""
+            
+            # Extract metadata text which contains hash, size, and update time
+            metadata_elem = element.select_one('div.flex.items-baseline')
+            metadata_text = metadata_elem.text.strip() if metadata_elem else ""
+            
+            # Parse metadata text
+            hash_match = re.search(r'([a-f0-9]+)', metadata_text)
+            hash_value = hash_match.group(1) if hash_match else ""
+            
+            size_match = re.search(r'(\d+\.?\d*\s*[GM]B)', metadata_text)
+            size = size_match.group(1) if size_match else ""
+            
+            update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text)
+            updated = update_match.group(1) if update_match else ""
+            
+            tags.append({
+                'name': tag_name,
+                'hash': hash_value,
+                'size': size,
+                'updated': updated
+            })
+        
+        return tags
+
     def get_model_details(self, model_url):
         """Get additional details for a specific model"""
         logging.info(f"Fetching details for model: {model_url}")
@@ -111,19 +157,18 @@ class OllamaScraper:
         }
     
     def scrape_all(self):
-        """Main function to scrape all models"""
+        """Main function to scrape all models and their tags"""
         all_models = self.get_all_models()
         
-        # If you need additional details from model pages, 
-        # you can still fetch and merge them
         for i, model in enumerate(all_models):
             try:
-                # Since we now extract most data from the search page,
-                # we might only need additional details in certain cases
-                if False:  # Change this condition if you need model details
-                    model_details = self.get_model_details(model['url'])
-                    all_models[i].update(model_details)
-                    time.sleep(self.delay)
+                # Get tags for each model
+                model_name = model['name']
+                tags = self.get_model_tags(model_name)
+                all_models[i]['tags'] = tags
+                
+                # Be respectful with requests
+                time.sleep(self.delay)
             except Exception as e:
                 logging.error(f"Error processing model {model['name']}: {str(e)}")
         
