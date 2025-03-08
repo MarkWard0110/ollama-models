@@ -154,10 +154,10 @@ class OllamaScraper:
             
             # Parse metadata text
             hash_match = re.search(r'([a-f0-9]+)', metadata_text)
-            hash_value = hash_match.group(1) if hash_match else ""
+            hash_value = hash_match.group(1) if hash_match else None
             
             size_match = re.search(r'(\d+\.?\d*\s*[GM]B)', metadata_text)
-            size = size_match.group(1) if size_match else ""
+            size = size_match.group(1) if size_match else None
             
             update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text)
             updated = update_match.group(1) if update_match else ""
