@@ -114,26 +114,79 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
         elif key in (27, ord('q')):
             return
 
+def interactive_view_config(stdscr, selected):
+    """
+    Displays all currently selected tags and allows toggling them off.
+    """
+    tags = sorted(list(selected))
+    idx = 0
+    start_idx = 0
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "View Current Config")
+        height, width = stdscr.getmaxyx()
+        max_viewable = height - 4
+        visible_tags = tags[start_idx : start_idx + max_viewable]
+        for i, tag in enumerate(visible_tags):
+            prefix = "> " if (start_idx + i) == idx else "  "
+            stdscr.addstr(i + 2, 2, f"{prefix}[X] {tag}"[: width - 3])
+        stdscr.addstr(len(visible_tags) + 3, 2, "[Enter] Unselect | [s] Save & Back | [q] Back w/o Save")
+        stdscr.refresh()
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and idx > 0:
+            idx -= 1
+            if idx < start_idx:
+                start_idx -= 1
+        elif key == curses.KEY_DOWN and idx < len(tags) - 1:
+            idx += 1
+            if idx >= start_idx + max_viewable:
+                start_idx += 1
+        elif key in (curses.KEY_ENTER, 10, 13):
+            # Toggle off
+            selected.discard(tags[idx])
+            tags.pop(idx)
+            if idx >= len(tags):
+                idx = max(0, len(tags) - 1)
+            if start_idx > idx:
+                start_idx = idx
+        elif key in (ord('s'), ord('S')):
+            save_config(selected)
+            return
+        elif key in (27, ord('q')):
+            return
+
 def run(stdscr):
     json_path = "ollama_models.json"
     models_data = load_models(json_path)
     selected = load_config()
 
     while True:
-        model_list = sorted(models_data.keys())
-        model = interactive_menu_select(stdscr, "\nSelect a model (↑/↓, Enter to choose, q to quit):", model_list)
-        if not model:
-            break
-        sizes_dict = models_data[model]
+        choice = interactive_menu_select(
+            stdscr,
+            "Main Menu:\nSelect an option (↑/↓, Enter, q=quit)",
+            ["Modify config", "View current config", "Quit"],
+        )
+        if choice == "Modify config":
+            while True:
+                model_list = sorted(models_data.keys())
+                model = interactive_menu_select(stdscr, "\nSelect a model (↑/↓, Enter, q to quit):", model_list)
+                if not model:
+                    break
+                sizes_dict = models_data[model]
 
-        while True:
-            size_list = sorted(s for s in sizes_dict.keys() if s)
-            title = f"\nSelect parameter size for {model}"
-            chosen_size = interactive_menu_select(stdscr, title, size_list)
-            if not chosen_size:
-                break
-            tags_list = sorted(sizes_dict[chosen_size])
-            interactive_toggle_tags(stdscr, model, chosen_size, tags_list, selected)
+                while True:
+                    size_list = sorted(s for s in sizes_dict.keys() if s)
+                    title = f"\nSelect parameter size for {model}"
+                    chosen_size = interactive_menu_select(stdscr, title, size_list)
+                    if not chosen_size:
+                        break
+                    tags_list = sorted(sizes_dict[chosen_size])
+                    interactive_toggle_tags(stdscr, model, chosen_size, tags_list, selected)
+        elif choice == "View current config":
+            interactive_view_config(stdscr, selected)
+        else:
+            break
 
 def main():
     curses.wrapper(run)
