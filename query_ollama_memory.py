@@ -27,10 +27,11 @@ def try_model_call(model_name, context_size):
     # ...existing code...
     payload_chat = {
         "model": model_name,
-        "prompt": "Test",
+        "prompt": "What is the capital of France?",
         "stream": False,
         "options": {
-            "num_ctx": context_size
+            "num_ctx": context_size,
+            "max_tokens": 64,
         }
     }
     try:
