@@ -14,7 +14,7 @@ class OllamaScraper:
     BASE_URL = "https://ollama.com"
     SEARCH_URL = f"{BASE_URL}/search"
     
-    def __init__(self, delay=0.1):
+    def __init__(self, delay=0.01):
         self.delay = delay  # Delay between requests to be respectful
         self.session = requests.Session()
         self.session.headers.update({
@@ -165,7 +165,7 @@ class OllamaScraper:
 
             # Extract parameter size from tag name (like 7b, 13b, 32b, etc.)
             param_match = re.search(r'^(\d+\.?\d*[bBmMtTkK])', tag_name)
-            parameter_size = param_match.group(1).lower() if param_match else tag_name
+            parameter_size = param_match.group(1).lower() if param_match else None
 
             tags.append({
                 'name': tag_name,
