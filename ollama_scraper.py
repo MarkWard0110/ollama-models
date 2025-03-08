@@ -6,6 +6,7 @@ import json
 import time
 import logging
 import re
+from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -58,6 +59,7 @@ class OllamaScraper:
                 # Extract update time
                 updated_elem = element.select_one('span[x-test-updated]')
                 updated = updated_elem.text.strip() if updated_elem else ""
+                updated_timestamp = self.convert_relative_time_to_timestamp(updated)
                 
                 # Extract capabilities - using find_all instead of select to ensure we get all elements
                 capabilities = []
@@ -81,13 +83,47 @@ class OllamaScraper:
                     'description': description,
                     'pull_count': pull_count,
                     'tag_count': tag_count,
-                    'updated': updated,
+                    'updated_timestamp': updated_timestamp,
                     'capabilities': capabilities,
                     'sizes': sizes
                 })
         
         logging.info(f"Found {len(models)} models")
         return models
+    
+    def convert_relative_time_to_timestamp(self, relative_time):
+        """Convert relative time strings to absolute timestamps"""
+        if not relative_time:
+            return None
+        
+        now = datetime.now()
+        
+        if relative_time.lower() == 'yesterday':
+            return (now - timedelta(days=1)).isoformat()
+        
+        if relative_time.lower() == 'today':
+            return now.isoformat()
+        
+        # Parse patterns like "2 weeks ago", "3 months ago", etc.
+        match = re.match(r'(\d+)\s+(\w+)\s+ago', relative_time)
+        if match:
+            value = int(match.group(1))
+            unit = match.group(2).lower()
+        
+            if unit == 'week' or unit == 'weeks':
+                return (now - timedelta(weeks=value)).isoformat()
+            elif unit == 'day' or unit == 'days':
+                return (now - timedelta(days=value)).isoformat()
+            elif unit == 'month' or unit == 'months':
+                # Approximate a month as 30 days
+                return (now - timedelta(days=30 * value)).isoformat()
+            elif unit == 'year' or unit == 'years':
+                # Approximate a year as 365 days
+                return (now - timedelta(days=365 * value)).isoformat()
+        
+        # If nothing matches, return the current timestamp
+        logging.warning(f"Unknown relative time format: {relative_time}")
+        return now.isoformat()
     
     def get_model_tags(self, model_name):
         """Get tags for a specific model"""
@@ -125,12 +161,13 @@ class OllamaScraper:
             
             update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text)
             updated = update_match.group(1) if update_match else ""
-            
+            updated_timestamp = self.convert_relative_time_to_timestamp(updated)
+
             tags.append({
                 'name': tag_name,
                 'hash': hash_value,
                 'size': size,
-                'updated': updated
+                'updated_timestamp': updated_timestamp,
             })
         
         return tags
