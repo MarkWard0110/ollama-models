@@ -19,7 +19,10 @@ def load_models(json_path):
             size = tag.get("parameter_size")
             if size not in sizes:
                 sizes[size] = []
-            sizes[size].append(tag.get("name", ""))
+            sizes[size].append({
+                "name": tag.get("name", ""),
+                "size": tag.get("size", "")
+            })
         models_dict[name] = sizes
     return models_dict
 
@@ -86,10 +89,10 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
         max_viewable = height - 4  # Reserve some lines for instructions
         visible_tags = tags[start_idx : start_idx + max_viewable]
         for i, tag in enumerate(visible_tags):
-            record = f"{model}:{tag}"
+            record = f"{model}:{tag['name']}"
             mark = "[X]" if record in selected else "[ ]"
             prefix = "> " if (start_idx + i) == idx else "  "
-            stdscr.addstr(i + 2, 2, f"{prefix}{mark} {tag}"[: width - 3])
+            stdscr.addstr(i + 2, 2, f"{prefix}{mark} {tag['name']} ({tag['size']})"[: width - 3])
         stdscr.addstr(len(visible_tags) + 3, 2, "[Enter] Toggle | [s] Save & Back | [q] Back w/o Save")
         stdscr.refresh()
 
@@ -103,7 +106,7 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
             if idx >= start_idx + max_viewable:
                 start_idx += 1
         elif key in (curses.KEY_ENTER, 10, 13, ord(' ')):
-            record = f"{model}:{tags[idx]}"
+            record = f"{model}:{tags[idx]['name']}"
             if record in selected:
                 selected.remove(record)
             else:
@@ -179,7 +182,7 @@ def run(stdscr):
                     chosen_size = interactive_menu_select(stdscr, title, size_list)
                     if not chosen_size:
                         break
-                    tags_list = sorted(sizes_dict[chosen_size])
+                    tags_list = sorted(sizes_dict[chosen_size], key=lambda x: x['name'])
                     interactive_toggle_tags(stdscr, model, chosen_size, tags_list, selected)
         elif choice == "View current config":
             interactive_view_config(stdscr, selected)
