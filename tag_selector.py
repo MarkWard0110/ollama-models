@@ -115,10 +115,8 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
             return
 
 def interactive_view_config(stdscr, selected):
-    """
-    Displays all currently selected tags and allows toggling them off.
-    """
-    tags = sorted(list(selected))
+    temp_selected = set(selected)
+    tags = sorted(temp_selected)
     idx = 0
     start_idx = 0
     while True:
@@ -128,8 +126,9 @@ def interactive_view_config(stdscr, selected):
         max_viewable = height - 4
         visible_tags = tags[start_idx : start_idx + max_viewable]
         for i, tag in enumerate(visible_tags):
+            mark = "[X]" if tag in temp_selected else "[ ]"
             prefix = "> " if (start_idx + i) == idx else "  "
-            stdscr.addstr(i + 2, 2, f"{prefix}[X] {tag}"[: width - 3])
+            stdscr.addstr(i + 2, 2, f"{prefix}{mark} {tag}"[: width - 3])
         stdscr.addstr(len(visible_tags) + 3, 2, "[Enter] Unselect | [s] Save & Back | [q] Back w/o Save")
         stdscr.refresh()
 
@@ -143,14 +142,13 @@ def interactive_view_config(stdscr, selected):
             if idx >= start_idx + max_viewable:
                 start_idx += 1
         elif key in (curses.KEY_ENTER, 10, 13):
-            # Toggle off
-            selected.discard(tags[idx])
-            tags.pop(idx)
-            if idx >= len(tags):
-                idx = max(0, len(tags) - 1)
-            if start_idx > idx:
-                start_idx = idx
+            if tags[idx] in temp_selected:
+                temp_selected.remove(tags[idx])
+            else:
+                temp_selected.add(tags[idx])
         elif key in (ord('s'), ord('S')):
+            selected.clear()
+            selected.update(temp_selected)
             save_config(selected)
             return
         elif key in (27, ord('q')):
