@@ -67,20 +67,26 @@ def main():
 
     for m in models:
         name = m.get("name")
+        print(f"Processing model: {name}")
         max_ctx = fetch_max_context_size(name)
+        print(f"Maximum reported context size: {max_ctx}")
         last_fit = 2048
         ctx = 2048
-        # ...existing code...
         while ctx <= max_ctx:
+            print(f"Testing context size: {ctx}")
             success = try_model_call(name, ctx)
             if not success: 
+                print(f"Model call failed for {name} at context size {ctx}, stopping.")
                 break
             size, size_vram = fetch_memory_usage(name)
+            print(f"Total allocated: {size}, In VRAM: {size_vram}")
             usage_writer.writerow([name, ctx, size])
             if size_vram < size:
+                print(f"Model offloaded memory at {ctx}, stopping.")
                 break
             last_fit = ctx
             ctx *= 2
+        print(f"Max context size fully in VRAM for {name} is {last_fit}")
         fit_writer.writerow([name, last_fit])
 
     usage_file.close()
