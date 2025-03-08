@@ -102,7 +102,7 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
             idx += 1
             if idx >= start_idx + max_viewable:
                 start_idx += 1
-        elif key in (curses.KEY_ENTER, 10, 13):
+        elif key in (curses.KEY_ENTER, 10, 13, ord(' ')):
             record = f"{model}:{tags[idx]}"
             if record in selected:
                 selected.remove(record)
@@ -141,7 +141,7 @@ def interactive_view_config(stdscr, selected):
             idx += 1
             if idx >= start_idx + max_viewable:
                 start_idx += 1
-        elif key in (curses.KEY_ENTER, 10, 13):
+        elif key in (curses.KEY_ENTER, 10, 13, ord(' ')):
             if tags[idx] in temp_selected:
                 temp_selected.remove(tags[idx])
             else:
