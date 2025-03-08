@@ -163,11 +163,16 @@ class OllamaScraper:
             updated = update_match.group(1) if update_match else ""
             updated_timestamp = self.convert_relative_time_to_timestamp(updated)
 
+            # Extract parameter size from tag name (like 7b, 13b, 32b, etc.)
+            param_match = re.search(r'^(\d+\.?\d*[bBmMtTkK])', tag_name)
+            parameter_size = param_match.group(1).lower() if param_match else tag_name
+
             tags.append({
                 'name': tag_name,
                 'hash': hash_value,
                 'size': size,
                 'updated_timestamp': updated_timestamp,
+                'parameter_size': parameter_size,  # Add the parameter size information
             })
         
         return tags
