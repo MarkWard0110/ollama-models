@@ -14,7 +14,7 @@ class OllamaScraper:
     BASE_URL = "https://ollama.com"
     SEARCH_URL = f"{BASE_URL}/search"
     
-    def __init__(self, delay=0.01):
+    def __init__(self, delay=0.001):
         self.delay = delay  # Delay between requests to be respectful
         self.session = requests.Session()
         self.session.headers.update({
