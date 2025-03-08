@@ -25,8 +25,8 @@ class OllamaScraper:
         """Scrape all models from the search page"""
         logging.info("Fetching all models from search page...")
         response = self.session.get(self.SEARCH_URL)
-        with open('ollama_search.html', 'w') as f:
-            f.write(response.text)
+        # with open('ollama_search.html', 'w') as f:
+        #     f.write(response.text)
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -156,7 +156,7 @@ class OllamaScraper:
             hash_match = re.search(r'([a-f0-9]+)', metadata_text)
             hash_value = hash_match.group(1) if hash_match else None
             
-            size_match = re.search(r'(\d+\.?\d*\s*[GM]B)', metadata_text)
+            size_match = re.search(r'(\d+\.?\d*\s*[TGM]B)', metadata_text)
             size = size_match.group(1) if size_match else None
             
             update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text)
