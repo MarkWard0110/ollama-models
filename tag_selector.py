@@ -117,9 +117,16 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
         elif key in (27, ord('q')):
             return
 
-def interactive_view_config(stdscr, selected):
+def interactive_view_config(stdscr, selected, models_data):
     temp_selected = set(selected)
     tags = sorted(temp_selected)
+    def get_tag_size(m_data, model, tag_name):
+        for size_key, tag_list in m_data[model].items():
+            for t in tag_list:
+                if t["name"] == tag_name:
+                    return t["size"]
+        return "N/A"
+
     idx = 0
     start_idx = 0
     while True:
@@ -129,9 +136,19 @@ def interactive_view_config(stdscr, selected):
         max_viewable = height - 4
         visible_tags = tags[start_idx : start_idx + max_viewable]
         for i, tag in enumerate(visible_tags):
+            model_tag = tag.split(":", 1)
+            if len(model_tag) == 2:
+                the_model, t_name = model_tag
+                tag_size = get_tag_size(models_data, the_model, t_name)
+            else:
+                tag_size = "N/A"
             mark = "[X]" if tag in temp_selected else "[ ]"
             prefix = "> " if (start_idx + i) == idx else "  "
-            stdscr.addstr(i + 2, 2, f"{prefix}{mark} {tag}"[: width - 3])
+            stdscr.addstr(
+                i + 2,
+                2,
+                f"{prefix}{mark} {tag} ({tag_size})"[: width - 3]
+            )
         stdscr.addstr(len(visible_tags) + 3, 2, "[Enter] Unselect | [s] Save & Back | [q] Back w/o Save")
         stdscr.refresh()
 
@@ -158,6 +175,9 @@ def interactive_view_config(stdscr, selected):
             return
 
 def run(stdscr):
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    stdscr.attrset(curses.color_pair(1) | curses.A_BOLD)
     json_path = "ollama_models.json"
     models_data = load_models(json_path)
     selected = load_config()
@@ -185,7 +205,7 @@ def run(stdscr):
                     tags_list = sorted(sizes_dict[chosen_size], key=lambda x: x['name'])
                     interactive_toggle_tags(stdscr, model, chosen_size, tags_list, selected)
         elif choice == "View current config":
-            interactive_view_config(stdscr, selected)
+            interactive_view_config(stdscr, selected, models_data)
         else:
             break
 
