@@ -110,6 +110,15 @@ def read_existing_data(usage_path, fit_path):
                     fit_models.add(row[0])
     return usage_set, fit_models
 
+def format_size(num_bytes):
+    units = ["B", "KB", "MB", "GB", "TB", "PB"]
+    size = float(num_bytes)
+    idx = 0
+    while size >= 1024 and idx < len(units) - 1:
+        size /= 1024
+        idx += 1
+    return f"{size:.1f}{units[idx]}"
+
 def main():
     usage_path = "context_usage.csv"
     fit_path = "max_context.csv"
@@ -153,8 +162,9 @@ def main():
             success = try_model_call(name, ctx)
             if success:
                 size, size_vram = fetch_memory_usage(name)
-                print(f"Measured at 2^n = {ctx}, total allocated: {size}, VRAM: {size_vram}")
-                new_usage_rows.append([name, ctx, size])
+                size_hr = format_size(size)
+                print(f"Measured at 2^n = {ctx}, total allocated: {size_hr}, VRAM: {size_vram}")
+                new_usage_rows.append([name, ctx, size_hr])
                 usage_set.add((name, ctx))
             else:
                 print(f"Failed chat/embed call for {name} at 2^n size {ctx}")
