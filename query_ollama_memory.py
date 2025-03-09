@@ -19,7 +19,10 @@ def fetch_max_context_size(model_name):
     try:
         resp = requests.post(f"{API_BASE}/api/show", json={"model": model_name}, timeout=10)
         info = resp.json().get("model_info", {})
-        return info.get("llama.context_length", 2048)
+        for key, value in info.items():
+            if key.endswith(".context_length"):
+                return value
+        return 2048
     except Exception:
         return 2048
 
@@ -56,6 +59,20 @@ def fetch_memory_usage(model_name):
     except Exception:
         return 0, 0
 
+def fits_in_vram(model_name, context_size):
+    if not try_model_call(model_name, context_size):
+        return False
+    size, size_vram = fetch_memory_usage(model_name)
+    return (size_vram >= size)
+
+def find_max_fit_in_vram(model_name, max_ctx):
+    best_fit = 0
+    # Simple linear scan for clarity
+    for c in range(2048, max_ctx + 1):
+        if fits_in_vram(model_name, c):
+            best_fit = c
+    return best_fit
+
 def main():
     models = fetch_installed_models()
     usage_file = open("context_usage.csv", "w", newline="")
@@ -70,24 +87,19 @@ def main():
         print(f"Processing model: {name}")
         max_ctx = fetch_max_context_size(name)
         print(f"Maximum reported context size: {max_ctx}")
-        last_fit = 2048
         ctx = 2048
         while ctx <= max_ctx:
-            print(f"Testing context size: {ctx}")
             success = try_model_call(name, ctx)
-            if not success: 
-                print(f"Model call failed for {name} at context size {ctx}, stopping.")
-                break
-            size, size_vram = fetch_memory_usage(name)
-            print(f"Total allocated: {size}, In VRAM: {size_vram}")
-            usage_writer.writerow([name, ctx, size])
-            if size_vram < size:
-                print(f"Model offloaded memory at {ctx}, stopping.")
-                break
-            last_fit = ctx
+            if success:
+                size, size_vram = fetch_memory_usage(name)
+                print(f"Measured at 2^n = {ctx}, total allocated: {size}, VRAM: {size_vram}")
+                usage_writer.writerow([name, ctx, size])
             ctx *= 2
-        print(f"Max context size fully in VRAM for {name} is {last_fit}")
-        fit_writer.writerow([name, last_fit])
+
+        best_fit = find_max_fit_in_vram(name, max_ctx)
+        if best_fit >= 2048:
+            print(f"Max context size fully in VRAM for {name} is {best_fit}")
+            fit_writer.writerow([name, best_fit])
 
     usage_file.close()
     fit_file.close()
