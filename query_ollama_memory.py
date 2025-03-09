@@ -60,17 +60,34 @@ def fetch_memory_usage(model_name):
         return 0, 0
 
 def fits_in_vram(model_name, context_size):
+    print(f"Attempting to fit model '{model_name}' at context size {context_size} in VRAM.")
     if not try_model_call(model_name, context_size):
+        print(f"Failed model call for {model_name} at context size {context_size}.")
         return False
     size, size_vram = fetch_memory_usage(model_name)
+    print(f"Memory usage for {model_name} at {context_size}: total={size}, VRAM={size_vram}")
     return (size_vram >= size)
 
 def find_max_fit_in_vram(model_name, max_ctx):
     best_fit = 0
-    # Simple linear scan for clarity
-    for c in range(2048, max_ctx + 1):
-        if fits_in_vram(model_name, c):
-            best_fit = c
+    # Exponential search to find an upper bound
+    start = 2048
+    if not fits_in_vram(model_name, start):
+        print(f"{model_name} cannot fit in VRAM even at 2048.")
+        return 0
+    high = start
+    while high <= max_ctx and fits_in_vram(model_name, high):
+        high *= 2
+    left, right = high // 2, min(high, max_ctx)
+    # Binary search in [left, right]
+    while left <= right:
+        mid = (left + right) // 2
+        if fits_in_vram(model_name, mid):
+            best_fit = mid
+            left = mid + 1
+        else:
+            right = mid - 1
+    print(f"Highest context size fitting in VRAM so far for {model_name}: {best_fit}")
     return best_fit
 
 def main():
@@ -94,6 +111,8 @@ def main():
                 size, size_vram = fetch_memory_usage(name)
                 print(f"Measured at 2^n = {ctx}, total allocated: {size}, VRAM: {size_vram}")
                 usage_writer.writerow([name, ctx, size])
+            else:
+                print(f"Failed chat/embed call for {name} at 2^n size {ctx}")
             ctx *= 2
 
         best_fit = find_max_fit_in_vram(name, max_ctx)
