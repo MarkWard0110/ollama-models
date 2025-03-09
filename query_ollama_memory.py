@@ -111,6 +111,7 @@ def main():
                 size, size_vram = fetch_memory_usage(name)
                 print(f"Measured at 2^n = {ctx}, total allocated: {size}, VRAM: {size_vram}")
                 usage_writer.writerow([name, ctx, size])
+                usage_file.flush()
             else:
                 print(f"Failed chat/embed call for {name} at 2^n size {ctx}")
             ctx *= 2
@@ -119,6 +120,7 @@ def main():
         if best_fit >= 2048:
             print(f"Max context size fully in VRAM for {name} is {best_fit}")
             fit_writer.writerow([name, best_fit])
+            fit_file.flush()
 
     usage_file.close()
     fit_file.close()
