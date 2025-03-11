@@ -122,28 +122,24 @@ def format_size(num_bytes):
 def main():
     usage_path = "context_usage.csv"
     fit_path = "max_context.csv"
+
     usage_set, fit_models = read_existing_data(usage_path, fit_path)
 
-    # We'll collect old rows plus new rows to re-write them at the end
-    old_usage_rows = []
-    old_fit_rows = []
-    # read them again for rewriting
-    if os.path.isfile(usage_path):
-        with open(usage_path, "r", newline="") as uf:
-            r = csv.reader(uf)
-            header = next(r, None)
-            for row in r:
-                old_usage_rows.append(row)
-    if os.path.isfile(fit_path):
-        with open(fit_path, "r", newline="") as ff:
-            r = csv.reader(ff)
-            header = next(r, None)
-            for row in r:
-                old_fit_rows.append(row)
+    # Open usage file in append mode if it exists, else create and write header
+    usage_exists = os.path.isfile(usage_path)
+    usage_file = open(usage_path, 'a' if usage_exists else 'w', newline="")
+    usage_writer = csv.writer(usage_file)
+    if not usage_exists:
+        usage_writer.writerow(["model_name", "context_size", "memory_allocated"])
+
+    # Open fit file in append mode similarly
+    fit_exists = os.path.isfile(fit_path)
+    fit_file = open(fit_path, 'a' if fit_exists else 'w', newline="")
+    fit_writer = csv.writer(fit_file)
+    if not fit_exists:
+        fit_writer.writerow(["model_name", "max_context_size"])
 
     models = fetch_installed_models()
-    new_usage_rows = []
-    new_fit_rows = []
 
     for m in models:
         name = m.get("name")
@@ -153,6 +149,7 @@ def main():
         print(f"Processing model: {name}")
         max_ctx = fetch_max_context_size(name)
         print(f"Maximum reported context size: {max_ctx}")
+
         ctx = 2048
         while ctx <= max_ctx:
             if (name, ctx) in usage_set:
@@ -164,7 +161,8 @@ def main():
                 size, size_vram = fetch_memory_usage(name)
                 size_hr = format_size(size)
                 print(f"Measured at 2^n = {ctx}, total allocated: {size_hr}, VRAM: {size_vram}")
-                new_usage_rows.append([name, ctx, size_hr])
+                usage_writer.writerow([name, ctx, size_hr])
+                usage_file.flush()
                 usage_set.add((name, ctx))
             else:
                 print(f"Failed chat/embed call for {name} at 2^n size {ctx}")
@@ -173,26 +171,12 @@ def main():
         best_fit = find_max_fit_in_vram(name, max_ctx)
         if best_fit >= 2048:
             print(f"Max context size fully in VRAM for {name} is {best_fit}")
-            new_fit_rows.append([name, best_fit])
+            fit_writer.writerow([name, best_fit])
+            fit_file.flush()
             fit_models.add(name)
 
-    # Re-write the usage file with old rows + new rows
-    with open(usage_path, "w", newline="") as uf:
-        w = csv.writer(uf)
-        w.writerow(["model_name", "context_size", "memory_allocated"])
-        for row in old_usage_rows:
-            w.writerow(row)
-        for row in new_usage_rows:
-            w.writerow(row)
-
-    # Re-write the fit file with old rows + new rows
-    with open(fit_path, "w", newline="") as ff:
-        w = csv.writer(ff)
-        w.writerow(["model_name", "max_context_size"])
-        for row in old_fit_rows:
-            w.writerow(row)
-        for row in new_fit_rows:
-            w.writerow(row)
+    usage_file.close()
+    fit_file.close()
 
 if __name__ == "__main__":
     main()
