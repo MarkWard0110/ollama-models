@@ -39,13 +39,13 @@ def try_model_call(model_name, context_size):
         }
     }
     try:
-        requests.post(f"{API_BASE}/api/chat", json=payload_chat, timeout=10)
+        requests.post(f"{API_BASE}/api/chat", json=payload_chat, timeout=1200)
         return True
     except Exception:
         # ...existing code...
         embed_payload = {"model": model_name, "input": "Test"}
         try:
-            requests.post(f"{API_BASE}/api/embed", json=embed_payload, timeout=10)
+            requests.post(f"{API_BASE}/api/embed", json=embed_payload, timeout=1200)
             return True
         except Exception:
             return False
@@ -61,15 +61,17 @@ def fetch_memory_usage(model_name):
         return 0, 0
 
 def fits_in_vram(model_name, context_size):
-    print(f"Attempting to fit model '{model_name}' at context size {context_size} in VRAM.")
     if not try_model_call(model_name, context_size):
         print(f"Failed model call for {model_name} at context size {context_size}.")
         return False
     size, size_vram = fetch_memory_usage(model_name)
-    print(f"Memory usage for {model_name} at {context_size}: total={size}, VRAM={size_vram}")
+    size_hr = format_size(size)
+    size_vram_hr = format_size(size_vram)
+    print(f"Memory usage for {model_name} at {context_size}: total={size_hr}, VRAM={size_vram_hr}")
     return (size_vram >= size)
 
 def find_max_fit_in_vram(model_name, max_ctx):
+    print(f"Finding max context size fitting in VRAM for {model_name}...")
     best_fit = 0
     # Exponential search to find an upper bound
     start = 2048
@@ -137,7 +139,7 @@ def main():
     fit_file = open(fit_path, 'a' if fit_exists else 'w', newline="")
     fit_writer = csv.writer(fit_file)
     if not fit_exists:
-        fit_writer.writerow(["model_name", "max_context_size"])
+        fit_writer.writerow(["model_name", "max_context_size", "is_model_max"])
 
     models = fetch_installed_models()
 
@@ -160,7 +162,8 @@ def main():
             if success:
                 size, size_vram = fetch_memory_usage(name)
                 size_hr = format_size(size)
-                print(f"Measured at 2^n = {ctx}, total allocated: {size_hr}, VRAM: {size_vram}")
+                size_vram_hr = format_size(size_vram)
+                print(f"Measured at 2^n = {ctx}, total allocated: {size_hr}, VRAM: {size_vram_hr}")
                 usage_writer.writerow([name, ctx, size_hr])
                 usage_file.flush()
                 usage_set.add((name, ctx))
@@ -170,8 +173,9 @@ def main():
 
         best_fit = find_max_fit_in_vram(name, max_ctx)
         if best_fit >= 2048:
+            is_model_max = (best_fit == max_ctx)
             print(f"Max context size fully in VRAM for {name} is {best_fit}")
-            fit_writer.writerow([name, best_fit])
+            fit_writer.writerow([name, best_fit, is_model_max])
             fit_file.flush()
             fit_models.add(name)
 
