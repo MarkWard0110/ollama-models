@@ -186,9 +186,9 @@ def run(stdscr):
         choice = interactive_menu_select(
             stdscr,
             "Main Menu:\nSelect an option (↑/↓, Enter, q=quit)",
-            ["Modify config", "View current config", "Quit"],
+            ["Select model", "Edit current config", "Quit"],
         )
-        if choice == "Modify config":
+        if choice == "Select model":
             while True:
                 model_list = sorted(models_data.keys())
                 model = interactive_menu_select(stdscr, "\nSelect a model (↑/↓, Enter, q to quit):", model_list)
@@ -204,7 +204,7 @@ def run(stdscr):
                         break
                     tags_list = sorted(sizes_dict[chosen_size], key=lambda x: x['name'])
                     interactive_toggle_tags(stdscr, model, chosen_size, tags_list, selected)
-        elif choice == "View current config":
+        elif choice == "Edit current config":
             interactive_view_config(stdscr, selected, models_data)
         else:
             break
