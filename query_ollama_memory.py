@@ -6,7 +6,7 @@ import math
 import csv
 import sys
 
-API_BASE = "http://localhost:11434"
+API_BASE = "http://quorra.homelan.binaryward.com:11434"
 
 def fetch_installed_models():
     try:
