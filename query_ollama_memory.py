@@ -113,7 +113,7 @@ def read_existing_data(usage_path, fit_path):
     return usage_set, fit_models
 
 def format_size(num_bytes):
-    units = ["B", "KB", "MB", "GB", "TB", "PB"]
+    units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
     size = float(num_bytes)
     idx = 0
     while size >= 1024 and idx < len(units) - 1:
