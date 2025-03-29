@@ -22,7 +22,7 @@ def sync_ollama():
 
     print("Fetching currently installed models from Ollama...")
     try:
-        resp = requests.get("http://localhost:11434/api/tags", timeout=10)
+        resp = requests.get("http://quorra.homelan.binaryward.com:11434/api/tags", timeout=60)
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
@@ -37,14 +37,14 @@ def sync_ollama():
     for model in sorted(selected):
         print(f"Pulling or updating model: {model}")
         try:
-            requests.post("http://localhost:11434/api/pull", json={"model": model}, timeout=30)
+            requests.post("http://quorra.homelan.binaryward.com:11434/api/pull", json={"model": model}, timeout=10800)
         except Exception as e:
             print(f"Error pulling {model}:", e)
 
     for model in sorted(removed_models):
         print(f"Deleting model: {model}")
         try:
-            requests.delete("http://localhost:11434/api/delete", json={"model": model}, timeout=10)
+            requests.delete("http://quorra.homelan.binaryward.com:11434/api/delete", json={"model": model}, timeout=3600)
         except Exception as e:
             print(f"Error deleting {model}:", e)
 
