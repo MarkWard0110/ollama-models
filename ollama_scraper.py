@@ -116,6 +116,8 @@ class OllamaScraper:
                 return (now - timedelta(days=value)).isoformat()
             elif unit == 'hour' or unit == 'hours':
                 return (now - timedelta(hours=value)).isoformat()
+            elif unit == 'minute' or unit == 'minutes':
+                return (now - timedelta(minutes=value)).isoformat()
             elif unit == 'month' or unit == 'months':
                 # Approximate a month as 30 days
                 return (now - timedelta(days=30 * value)).isoformat()
