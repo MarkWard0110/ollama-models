@@ -142,28 +142,41 @@ class OllamaScraper:
         soup = BeautifulSoup(response.text, 'html.parser')
         
         tags = []
-        tag_elements = soup.select('div.flex.px-4.py-3')
+        # New structure: each tag is in a list item element with group class
+        tag_elements = soup.select('li.group')
         
         for element in tag_elements:
+            # Find the tag link which contains the tag name
             tag_link = element.select_one('a')
             if not tag_link:
                 continue
-                
-            tag_name_elem = tag_link.select_one('div.break-all')
+            
+            # Extract the tag name from the first span with group-hover:underline class
+            tag_name_elem = tag_link.select_one('span.group-hover\\:underline')
+            if not tag_name_elem:
+                # Fall back to any span that might contain the tag name
+                tag_name_elem = tag_link.select_one('span')
+            
             tag_name = tag_name_elem.text.strip() if tag_name_elem else ""
             
+            # Fix tag name to remove model prefix if present
+            if ':' in tag_name and tag_name.startswith(f"{model_name}:"):
+                tag_name = tag_name.split(':', 1)[1]
+            
             # Extract metadata text which contains hash, size, and update time
-            metadata_elem = element.select_one('div.flex.items-baseline')
+            # This is now in the div with text-neutral-500 and text-[13px] classes
+            metadata_elem = element.select_one('div.text-neutral-500.text-\\[13px\\]')
             metadata_text = metadata_elem.text.strip() if metadata_elem else ""
             
             # Parse metadata text
-            hash_match = re.search(r'([a-f0-9]+)', metadata_text)
+            hash_match = re.search(r'([a-f0-9]{10,})', metadata_text)
             hash_value = hash_match.group(1) if hash_match else None
             
-            size_match = re.search(r'(\d+\.?\d*\s*[TGM]B)', metadata_text)
+            size_match = re.search(r'(\d+\.?\d*\s*[KMGT]B)', metadata_text, re.IGNORECASE)
             size = size_match.group(1) if size_match else None
             
-            update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text)
+            # The update time might be in the format "X hours ago", "X days ago", etc.
+            update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:yesterday)|(?:today)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text, re.IGNORECASE)
             updated = update_match.group(1) if update_match else ""
             updated_timestamp = self.convert_relative_time_to_timestamp(updated)
 
@@ -176,7 +189,7 @@ class OllamaScraper:
                 'hash': hash_value,
                 'size': size,
                 'updated_timestamp': updated_timestamp,
-                'parameter_size': parameter_size,  # Add the parameter size information
+                'parameter_size': parameter_size,
             })
         
         return tags
