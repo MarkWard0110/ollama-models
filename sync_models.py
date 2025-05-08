@@ -35,7 +35,7 @@ def sync_ollama():
     removed_models = installed_models - selected
 
     for model in sorted(selected):
-        print(f"Pulling or updating model: {model}")
+        print(f"Pulling model: {model}")
         try:
             requests.post("http://quorra.homelan.binaryward.com:11434/api/pull", json={"model": model}, timeout=10800)
         except Exception as e:
