@@ -35,6 +35,7 @@ def fits_in_vram(model_name, context_size):
 def find_max_fit_in_vram(model_name, max_ctx):
     """
     Find maximum context size that fits in VRAM for a model.
+    Reports progress during the search for better monitoring.
     
     Args:
         model_name (str): Name of the model
@@ -49,23 +50,38 @@ def find_max_fit_in_vram(model_name, max_ctx):
     if not fits_in_vram(model_name, start):
         logger.info(f"{model_name} cannot fit in VRAM even at 2048.")
         return 0
+    
+    logger.info(f"Initial test successful at context size {start}.")
     high = start
+    
+    # Exponential search phase
     while high <= max_ctx and fits_in_vram(model_name, high):
+        best_fit = high  # Update best_fit during exponential search
+        logger.info(f"Model {model_name} fits at context size {high}, trying larger size...")
         high *= 2
+        
+    # Binary search phase
+    logger.info(f"Starting binary search between {high // 2} and {min(high, max_ctx)}...")
     left, right = high // 2, min(high, max_ctx)
     while left <= right:
         mid = (left + right) // 2
+        logger.info(f"Testing context size {mid}...")
         if fits_in_vram(model_name, mid):
             best_fit = mid
+            logger.info(f"Success at {mid}, trying larger size...")
             left = mid + 1
         else:
+            logger.info(f"Failed at {mid}, trying smaller size...")
             right = mid - 1
+            
     logger.info(f"Highest context size fitting in VRAM for {model_name}: {best_fit}")
     return best_fit
 
 def probe_max_context(output_file, model_name=None):
     """
     Find and save the maximum context size that fits in VRAM for models.
+    The function now saves each model's context fit as soon as it's found,
+    making the process resumable if interrupted.
     
     Args:
         output_file (str): Path to output CSV file
@@ -94,6 +110,15 @@ def probe_max_context(output_file, model_name=None):
     else:
         models = fetch_installed_models()
 
+    # Function to write current fit data to file
+    def write_fit_data():
+        sorted_rows = sorted(fit_rows, key=lambda row: row[0])
+        with open(output_file, 'w', newline="") as fit_file:
+            fit_writer = csv.writer(fit_file)
+            fit_writer.writerow(["model_name", "max_context_size", "is_model_max"])
+            for row in sorted_rows:
+                fit_writer.writerow(row)
+
     for m in models:
         name = m.get("name")
         if name in fit_models and not model_name:
@@ -121,13 +146,10 @@ def probe_max_context(output_file, model_name=None):
             else:
                 fit_rows.append([name, best_fit, is_model_max])
                 fit_models.add(name)
+                
+            # Save progress immediately after processing each model
+            logger.info(f"Saving progress for {name}...")
+            write_fit_data()
+            logger.info(f"Progress saved.")
 
-    # Sort and write fit file
-    fit_rows.sort(key=lambda row: row[0])
-    with open(output_file, 'w', newline="") as fit_file:
-        fit_writer = csv.writer(fit_file)
-        fit_writer.writerow(["model_name", "max_context_size", "is_model_max"])
-        for row in fit_rows:
-            fit_writer.writerow(row)
-            
     return fit_rows
