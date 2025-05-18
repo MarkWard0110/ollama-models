@@ -6,6 +6,7 @@ import json
 import time
 import logging
 import re
+import sys
 from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -142,55 +143,131 @@ class OllamaScraper:
         soup = BeautifulSoup(response.text, 'html.parser')
         
         tags = []
-        # New structure: each tag is in a list item element with group class
-        tag_elements = soup.select('li.group')
+        
+        # New website structure uses div.group elements for tags instead of li.group
+        tag_elements = soup.select('div.group.p-3')
+        
+        # If no tags found, log it as a potential structure change
+        if not tag_elements:
+            logging.error(f"No tags found for {model_name}. HTML structure might have changed again.")
+            # Save the HTML for debugging if needed
+            with open(f"{model_name}_tags_debug.html", "w", encoding="utf-8") as f:
+                f.write(response.text)
+            return []
+            
+        logging.info(f"Found {len(tag_elements)} potential tags for {model_name}")
+        
+        successful_extracts = 0
         
         for element in tag_elements:
-            # Find the tag link which contains the tag name
-            tag_link = element.select_one('a')
-            if not tag_link:
-                continue
-            
-            # Extract the tag name from the first span with group-hover:underline class
-            tag_name_elem = tag_link.select_one('span.group-hover\\:underline')
-            if not tag_name_elem:
-                # Fall back to any span that might contain the tag name
-                tag_name_elem = tag_link.select_one('span')
-            
-            tag_name = tag_name_elem.text.strip() if tag_name_elem else ""
-            
-            # Fix tag name to remove model prefix if present
-            if ':' in tag_name and tag_name.startswith(f"{model_name}:"):
-                tag_name = tag_name.split(':', 1)[1]
-            
-            # Extract metadata text which contains hash, size, and update time
-            # This is now in the div with text-neutral-500 and text-[13px] classes
-            metadata_elem = element.select_one('div.text-neutral-500.text-\\[13px\\]')
-            metadata_text = metadata_elem.text.strip() if metadata_elem else ""
-            
-            # Parse metadata text
-            hash_match = re.search(r'([a-f0-9]{10,})', metadata_text)
-            hash_value = hash_match.group(1) if hash_match else None
-            
-            size_match = re.search(r'(\d+\.?\d*\s*[KMGT]B)', metadata_text, re.IGNORECASE)
-            size = size_match.group(1) if size_match else None
-            
-            # The update time might be in the format "X hours ago", "X days ago", etc.
-            update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:yesterday)|(?:today)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text, re.IGNORECASE)
-            updated = update_match.group(1) if update_match else ""
-            updated_timestamp = self.convert_relative_time_to_timestamp(updated)
-
-            # Extract parameter size from tag name (like 7b, 13b, 32b, etc.)
-            param_match = re.search(r'^(\d+\.?\d*[bBmMtTkK])', tag_name)
-            parameter_size = param_match.group(1).lower() if param_match else None
-
-            tags.append({
-                'name': tag_name,
-                'hash': hash_value,
-                'size': size,
-                'updated_timestamp': updated_timestamp,
-                'parameter_size': parameter_size,
-            })
+            try:
+                # The website has different layouts for mobile and desktop
+                # Try the mobile layout first (it's usually simpler)
+                tag_link = element.select_one('a.md\\:hidden')
+                
+                if tag_link:
+                    # Mobile layout
+                    tag_name_elem = tag_link.select_one('span.group-hover\\:underline')
+                    if not tag_name_elem:
+                        continue
+                        
+                    tag_name = tag_name_elem.text.strip()
+                    
+                    # Get metadata from the mobile view
+                    metadata_elem = tag_link.select_one('div.flex.flex-col.text-neutral-500.text-\\[13px\\]')
+                    if not metadata_elem:
+                        metadata_elem = tag_link.select_one('span')
+                    
+                    # Find the hash value (in a span with font-mono class)
+                    hash_elem = metadata_elem.select_one('span.font-mono') if metadata_elem else None
+                    hash_value = hash_elem.text.strip() if hash_elem else None
+                    
+                    # Extract complete metadata text
+                    metadata_text = metadata_elem.text.strip() if metadata_elem else ""
+                else:
+                    # Desktop layout (hidden on mobile, visible on larger screens)
+                    desktop_div = element.select_one('div.hidden.md\\:flex')
+                    if not desktop_div:
+                        continue
+                        
+                    # Get tag name from desktop layout
+                    tag_link = desktop_div.select_one('a.group-hover\\:underline')
+                    if not tag_link:
+                        continue
+                        
+                    tag_name = tag_link.text.strip()
+                    
+                    # Get hash from the font-mono element
+                    hash_elem = desktop_div.select_one('span.font-mono')
+                    hash_value = hash_elem.text.strip() if hash_elem else None
+                    
+                    # Get other metadata from paragraphs
+                    size_elem = desktop_div.select_one('p.col-span-2:nth-of-type(1)')
+                    size = size_elem.text.strip() if size_elem else None
+                    
+                    context_elem = desktop_div.select_one('p.col-span-2:nth-of-type(2)')
+                    context_window = context_elem.text.strip() if context_elem else None
+                    
+                    # Get the updated time
+                    time_elem = desktop_div.select_one('div.flex.text-neutral-500.text-xs')
+                    metadata_text = time_elem.text.strip() if time_elem else ""
+                
+                # Fix tag name to remove model prefix if present
+                if ':' in tag_name and tag_name.startswith(f"{model_name}:"):
+                    tag_name = tag_name.split(':', 1)[1]
+                
+                # Parse metadata text for size if not already extracted
+                if 'size' not in locals() or not size:
+                    size_match = re.search(r'(\d+\.?\d*\s*[KMGT]B)', metadata_text, re.IGNORECASE)
+                    size = size_match.group(1) if size_match else None
+                
+                # Parse context window size if not already extracted
+                if 'context_window' not in locals() or not context_window:
+                    context_match = re.search(r'(\d+[kK])\s*context', metadata_text, re.IGNORECASE)
+                    context_window = context_match.group(1) if context_match else None
+                
+                # Extract update time
+                update_match = re.search(r'((?:\d+\s+\w+\s+ago)|(?:yesterday)|(?:today)|(?:\w+\s+\d+,\s+\d{4}))', metadata_text, re.IGNORECASE)
+                updated = update_match.group(1) if update_match else ""
+                updated_timestamp = self.convert_relative_time_to_timestamp(updated)
+                
+                # Extract parameter size from tag name (like 7b, 13b, 32b, etc.)
+                param_match = re.search(r'(\d+\.?\d*[bBmMtTkK])', tag_name)
+                parameter_size = param_match.group(1).lower() if param_match else None
+                
+                # Extract model type (Text, Vision, etc.)
+                type_match = re.search(r'(Text|Vision|Audio|Multimodal|Video)', metadata_text, re.IGNORECASE)
+                model_type = type_match.group(1) if type_match else None
+                
+                tag_data = {
+                    'name': tag_name,
+                    'hash': hash_value,
+                    'size': size,
+                    'context_window': context_window,
+                    'model_type': model_type,
+                    'updated_timestamp': updated_timestamp,
+                    'parameter_size': parameter_size,
+                }
+                
+                # Validate we have at least the crucial information
+                if tag_name and hash_value:
+                    tags.append(tag_data)
+                    successful_extracts += 1
+                else:
+                    logging.warning(f"Incomplete tag data for {model_name}: {tag_data}")
+                    
+            except Exception as e:
+                logging.error(f"Error parsing tag element for {model_name}: {str(e)}")
+        
+        logging.info(f"Successfully extracted {successful_extracts} tags for {model_name} out of {len(tag_elements)} elements")
+        
+        # If no tags were successfully extracted but elements were found, it might indicate a parsing issue
+        if successful_extracts == 0 and len(tag_elements) > 0:
+            logging.error(f"Failed to extract any tags for {model_name} despite finding {len(tag_elements)} potential elements. HTML structure might have changed.")
+            with open(f"{model_name}_tags_debug.html", "w", encoding="utf-8") as f:
+                f.write(response.text)
+                
+        return tags
         
         return tags
 
@@ -215,30 +292,141 @@ class OllamaScraper:
             'readme': readme_content
         }
     
+    def update_model_sizes(self, models):
+        """
+        Update each model's sizes array based on the parameter_sizes in the tags.
+        
+        For tags with null parameter_size, try to find a matching tag with the same hash
+        that has a parameter_size and use that value.
+        """
+        logging.info("Updating model sizes based on parameter sizes in tags...")
+        
+        for model in models:
+            # Create a mapping from hash to parameter_size
+            hash_to_param_size = {}
+            for tag in model.get('tags', []):
+                if isinstance(tag, dict) and 'hash' in tag and 'parameter_size' in tag and tag['parameter_size'] is not None:
+                    hash_to_param_size[tag['hash']] = tag['parameter_size']
+            
+            # Collect all unique parameter sizes and resolve null values where possible
+            unique_sizes = set()
+            for tag in model.get('tags', []):
+                if isinstance(tag, dict) and 'parameter_size' in tag:
+                    if tag['parameter_size'] is not None:
+                        unique_sizes.add(tag['parameter_size'])
+                    elif 'hash' in tag and tag['hash'] in hash_to_param_size:
+                        # Use parameter_size from another tag with same hash
+                        tag['parameter_size'] = hash_to_param_size[tag['hash']]
+                        unique_sizes.add(tag['parameter_size'])
+            
+            # Update the model's sizes array with unique parameter sizes
+            if unique_sizes:
+                model['sizes'] = sorted(list(unique_sizes))
+        
+        logging.info(f"Updated sizes for {len(models)} models")
+        return models
+    
     def scrape_all(self):
         """Main function to scrape all models and their tags"""
-        all_models = self.get_all_models()
-        
-        for i, model in enumerate(all_models):
-            try:
-                # Get tags for each model
-                model_name = model['name']
-                tags = self.get_model_tags(model_name)
-                all_models[i]['tags'] = tags
+        try:
+            all_models = self.get_all_models()
+            logging.info(f"Found {len(all_models)} models")
+            
+            if not all_models:
+                logging.error("Failed to get any models. The search page structure might have changed.")
+                return []
                 
-                # Be respectful with requests
-                time.sleep(self.delay)
-            except Exception as e:
-                logging.error(f"Error processing model {model['name']}: {str(e)}")
-        
-        return all_models
+            models_with_tags = 0
+            total_tags = 0
+            
+            for i, model in enumerate(all_models):
+                try:
+                    # Get tags for each model
+                    model_name = model['name']
+                    logging.info(f"Processing model {i+1}/{len(all_models)}: {model_name}")
+                    
+                    tags = self.get_model_tags(model_name)
+                    all_models[i]['tags'] = tags
+                    
+                    if tags:
+                        models_with_tags += 1
+                        total_tags += len(tags)
+                        logging.info(f"Found {len(tags)} tags for {model_name}")
+                    else:
+                        logging.warning(f"No tags found for {model_name}")
+                    
+                    # Be respectful with requests
+                    time.sleep(self.delay)
+                except Exception as e:
+                    logging.error(f"Error processing model {model['name']}: {str(e)}")
+                    # Continue with the next model instead of failing completely
+                    all_models[i]['tags'] = []
+            
+            # Validate we have at least some successful tag extractions
+            if models_with_tags == 0:
+                logging.error("Failed to get tags for any models. The tags page structure might have changed.")
+            else:
+                logging.info(f"Successfully extracted tags for {models_with_tags}/{len(all_models)} models (total {total_tags} tags)")
+            
+            # Process and update model sizes based on tag information
+            all_models = self.update_model_sizes(all_models)
+            
+            return all_models
+        except Exception as e:
+            logging.error(f"Critical error in scrape_all: {str(e)}")
+            import traceback
+            logging.error(traceback.format_exc())
+            return []
 
 if __name__ == "__main__":
-    scraper = OllamaScraper()
-    results = scraper.scrape_all()
-    
-    # Save results to a JSON file
-    with open('ollama_models.json', 'w') as f:
-        json.dump(results, f, indent=2)
-    
-    print(f"Scraped {len(results)} models. Results saved to ollama_models.json")
+    try:
+        # Set up better logging
+        log_file = 'ollama_scraper.log'
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(file_handler)
+        
+        # Allow setting delay via command line args
+        delay = 0.001
+        if len(sys.argv) > 2:
+            try:
+                delay = float(sys.argv[2])
+                logging.info(f"Using custom delay between requests: {delay}s")
+            except ValueError:
+                logging.warning(f"Invalid delay value: {sys.argv[2]}, using default: {delay}s")
+        
+        logging.info("Starting Ollama scraper")
+        scraper = OllamaScraper(delay=delay)
+        results = scraper.scrape_all()
+        
+        if not results:
+            logging.error("No results obtained. Check error messages above.")
+            sys.exit(1)
+            
+        # Count models and tags for validation
+        model_count = len(results)
+        tag_count = sum(len(model.get('tags', [])) for model in results)
+        
+        # Save results to a JSON file
+        output_file = 'ollama_models.json'
+        
+        # Allow specifying a different output file via command line
+        if len(sys.argv) > 1:
+            output_file = sys.argv[1]
+        
+        with open(output_file, 'w') as f:
+            json.dump(results, f, indent=2)
+        
+        # Validate the results
+        if model_count == 0 or tag_count == 0:
+            logging.error(f"Warning: Scraped {model_count} models with {tag_count} total tags. This might indicate a parsing failure.")
+            print(f"Warning: Scraped {model_count} models with {tag_count} total tags. Results saved to {output_file}, but they may be incomplete.")
+        else:
+            logging.info(f"Scraped {model_count} models with {tag_count} total tags. Results saved to {output_file}")
+            print(f"Scraped {model_count} models with {tag_count} total tags. Results saved to {output_file}")
+            
+    except Exception as e:
+        logging.error(f"Critical error: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        print(f"Error: {str(e)}. See {log_file} for details.")
