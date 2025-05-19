@@ -6,9 +6,11 @@ import json
 import logging
 import requests
 from ollama_models.core import scraper
-from ollama_models.config import DEFAULT_CONFIG_FILE, DEFAULT_MODELS_JSON
+from ollama_models.config import DEFAULT_CONFIG_FILE, DEFAULT_MODELS_JSON, MODELS_JSON_FILENAME
+from ollama_models.file_utils import ModelFileManager
 
 logger = logging.getLogger("ollama_models.model")
+file_manager = ModelFileManager()
 
 def setup_parser(parser):
     """
@@ -18,29 +20,25 @@ def setup_parser(parser):
         parser: The argument parser to set up
     """
     subparsers = parser.add_subparsers(dest="subcommand", help="Model subcommands")
-    
-    # fetch command (was update_models.py)
+      # fetch command (was update_models.py)
     fetch_parser = subparsers.add_parser("fetch", help="Fetch and update the model database")
-    fetch_parser.add_argument("--output", "-o", default=DEFAULT_MODELS_JSON,
-                            help=f"Output JSON file (default: {DEFAULT_MODELS_JSON})")
+    fetch_parser.add_argument("--output", "-o", default=MODELS_JSON_FILENAME,
+                            help=f"Output JSON file (default: {MODELS_JSON_FILENAME} in current directory)")
     fetch_parser.add_argument("--skip-validation", action="store_true",
                             help="Skip validation of scraped data")
     fetch_parser.add_argument("--force", "-f", action="store_true",
                             help="Force update even if validation fails")
-    
-    # edit command (was tag_selector.py)
+      # edit command (was tag_selector.py)
     edit_parser = subparsers.add_parser("edit", help="Edit selected model tags")
-    edit_parser.add_argument("--models-file", "-m", default=DEFAULT_MODELS_JSON,
-                           help=f"Models JSON file (default: {DEFAULT_MODELS_JSON})")
+    edit_parser.add_argument("--models-file", "-m", default=None,
+                           help=f"Models JSON file (defaults to local file or package default)")
     edit_parser.add_argument("--config-file", "-c", default=DEFAULT_CONFIG_FILE,
                            help=f"Selected tags config file (default: {DEFAULT_CONFIG_FILE})")
     
     # apply command (was sync_models.py)
     apply_parser = subparsers.add_parser("apply", help="Apply selected model configuration to Ollama")
     apply_parser.add_argument("--config-file", "-c", default=DEFAULT_CONFIG_FILE,
-                            help=f"Selected tags config file (default: {DEFAULT_CONFIG_FILE})")
-    
-    # init command (was ollama_api_updater.py)
+                            help=f"Selected tags config file (default: {DEFAULT_CONFIG_FILE})")    # init command (was ollama_api_updater.py)
     init_parser = subparsers.add_parser("init", help="Initialize selected tags from Ollama API")
     init_parser.add_argument("--config-file", "-c", default=DEFAULT_CONFIG_FILE,
                            help=f"Selected tags config file (default: {DEFAULT_CONFIG_FILE})")
@@ -79,8 +77,18 @@ def cmd_fetch(args):
     """
     logger.info("Starting models fetch process...")
     
+    # Always create in current directory, regardless of specified path
+    # This ensures the file is placed in a predictable location
+    if os.path.isabs(args.output):
+        output_filename = os.path.basename(args.output)
+    else:
+        output_filename = args.output
+        
+    output_path = os.path.join(os.getcwd(), output_filename)
+    logger.info(f"Output file will be created at: {output_path}")
+    
     # Run the scraper to get fresh data
-    temp_file = run_scraper(args.output + ".temp")
+    temp_file = run_scraper(output_path + ".temp")
     if not temp_file or not os.path.exists(temp_file):
         logger.error("Failed to get fresh model data. Update aborted.")
         return 1
@@ -97,7 +105,7 @@ def cmd_fetch(args):
             logger.warning("Validation failed but --force flag is set, continuing anyway.")
     
     # Update the main file
-    if not update_main_file(temp_file, args.output):
+    if not update_main_file(temp_file, output_path):
         logger.error("Failed to update main file. Update aborted.")
         cleanup(temp_file)
         return 1
@@ -105,7 +113,7 @@ def cmd_fetch(args):
     # Clean up
     cleanup(temp_file)
     
-    logger.info("Update process completed successfully")
+    logger.info(f"Update process completed successfully. Models file created at {output_path}")
     return 0
 
 def run_scraper(temp_output):
@@ -150,7 +158,7 @@ def validate_data(file_path):
         if tag_count < 10:
             logger.warning(f"Very few tags found ({tag_count}). The Ollama website structure may have changed.")
             return False
-            
+        
         # Check if at least some models have tags - we've relaxed this requirement
         models_with_tags = sum(1 for model in data if len(model.get("tags", [])) > 0)
         if models_with_tags == 0:
@@ -158,6 +166,26 @@ def validate_data(file_path):
             return False
         
         logger.info(f"Models with tags: {models_with_tags}/{model_count} ({models_with_tags/model_count:.1%})")
+        
+        # Validate basic data structure
+        for model in data:
+            if not isinstance(model, dict):
+                logger.error(f"Found non-dictionary model entry")
+                return False
+            if "name" not in model:
+                logger.error(f"Found model without name")
+                return False
+            if "tags" not in model:
+                logger.warning(f"Found model {model['name']} without tags")
+                continue
+            for tag in model.get("tags", []):
+                if not isinstance(tag, dict):
+                    logger.error(f"Found non-dictionary tag in model {model['name']}")
+                    return False
+                if "name" not in tag:
+                    logger.error(f"Found tag without name in model {model['name']}")
+                    return False
+                    
         return True
     except Exception as e:
         logger.error(f"Error validating data: {e}", exc_info=True)
@@ -174,16 +202,20 @@ def update_main_file(temp_file, main_file):
             with open(main_file, 'r') as src, open(backup_file, 'w') as dst:
                 dst.write(src.read())
             logger.info(f"Created backup at {backup_file}")
-          # Load the temp file data
+            
+        # Load the temp file data
         with open(temp_file, 'r') as f:
             models_data = json.load(f)
         
-        # Write the updated data to the main file
-        with open(main_file, 'w') as f:
-            json.dump(models_data, f, indent=2)
+        # Use the file manager to write the updated data
+        success = file_manager.write_models_file(models_data, main_file)
         
-        logger.info(f"Successfully updated {main_file}")
-        return True
+        if success:
+            logger.info(f"Successfully updated {main_file}")
+            return True
+        else:
+            logger.error(f"Failed to update {main_file}")
+            return False
     except Exception as e:
         logger.error(f"Error updating main file: {e}", exc_info=True)
         return False
@@ -210,8 +242,12 @@ def cmd_edit(args):
     try:
         from ollama_models.core.tag_selector import run_selector
         
+        # Get the correct models file path using the file manager
+        models_file_path = file_manager.get_models_path(args.models_file)
+        logger.info(f"Using models file: {models_file_path}")
+        
         # Run the tag selector with the provided arguments
-        return run_selector(args.models_file, args.config_file)
+        return run_selector(models_file_path, args.config_file)
     except Exception as e:
         logger.error(f"Failed to run tag selector: {e}", exc_info=True)
         return 1
@@ -231,8 +267,17 @@ def cmd_apply(args):
     
     logger.info("Syncing models with Ollama...")
     
+    # Make sure we have a valid configuration file
+    config_file = args.config_file
+    if not os.path.isabs(config_file):
+        config_file = os.path.join(os.getcwd(), config_file)
+    
+    if not os.path.exists(config_file):
+        logger.error(f"Config file not found: {config_file}")
+        return 1
+    
     # Use the integrated syncer module
-    success, new_models, removed_models = sync_ollama(args.config_file, API_BASE)
+    success, new_models, removed_models = sync_ollama(config_file, API_BASE)
     
     if not success:
         logger.warning("Some operations failed during sync")
@@ -263,7 +308,18 @@ def cmd_init(args):
     from ollama_models.utils import API_BASE
     from ollama_models.core.initializer import init_from_api
     
-    # Use the integrated initializer module
-    success, models = init_from_api(args.config_file, API_BASE)
+    # Make sure we have a valid configuration file path
+    config_file = args.config_file
+    if not os.path.isabs(config_file):
+        config_file = os.path.join(os.getcwd(), config_file)
     
+    logger.info(f"Initializing config from Ollama API to: {config_file}")
+    
+    # Use the integrated initializer module
+    success, models = init_from_api(config_file, API_BASE)
+    
+    if success:
+        logger.info(f"Successfully initialized {len(models)} models in {config_file}")
+    else:
+        logger.error(f"Failed to initialize models from API")
     return 0 if success else 1

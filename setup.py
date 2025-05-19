@@ -39,6 +39,9 @@ setup(
             "flake8>=6.0.0",
         ],
     },
+    package_data={
+        "ollama_models": ["ollama_models.json"],
+    },
     entry_points={
         "console_scripts": [
             "ollama-models=ollama_models.cli:main",

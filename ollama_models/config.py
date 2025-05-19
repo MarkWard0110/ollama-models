@@ -7,26 +7,33 @@ from pathlib import Path
 # Base paths
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = os.environ.get("OLLAMA_MODELS_DATA_DIR", str(PROJECT_ROOT))
+CURRENT_DIR = os.getcwd()
 
-# Default file paths
+# Default filenames
+MODELS_JSON_FILENAME = "ollama_models.json"
+CONFIG_FILENAME = "selected_tags.conf"
+CONTEXT_USAGE_FILENAME = "context_usage.csv"
+MAX_CONTEXT_FILENAME = "max_context.csv"
+
+# Default file paths - now checking the current directory first
 DEFAULT_MODELS_JSON = os.environ.get(
     "OLLAMA_MODELS_JSON", 
-    os.path.join(DATA_DIR, "ollama_models.json")
+    os.path.join(CURRENT_DIR, MODELS_JSON_FILENAME)
 )
 
 DEFAULT_CONFIG_FILE = os.environ.get(
     "OLLAMA_MODELS_CONFIG", 
-    os.path.join(DATA_DIR, "selected_tags.conf")
+    os.path.join(CURRENT_DIR, CONFIG_FILENAME)
 )
 
 DEFAULT_CONTEXT_USAGE_CSV = os.environ.get(
     "OLLAMA_MODELS_CONTEXT_USAGE", 
-    os.path.join(DATA_DIR, "context_usage.csv")
+    os.path.join(CURRENT_DIR, CONTEXT_USAGE_FILENAME)
 )
 
 DEFAULT_MAX_CONTEXT_CSV = os.environ.get(
     "OLLAMA_MODELS_MAX_CONTEXT", 
-    os.path.join(DATA_DIR, "max_context.csv")
+    os.path.join(CURRENT_DIR, MAX_CONTEXT_FILENAME)
 )
 
 # API configuration

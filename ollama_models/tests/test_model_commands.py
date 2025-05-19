@@ -46,43 +46,54 @@ class TestModelCommands(unittest.TestCase):
         """Clean up the test environment."""
         os.unlink(self.temp_models_json.name)
         os.unlink(self.temp_config.name)
-    
-    @patch("ollama_models.core.scraper.OllamaScraper.get_all_models")
-    def test_fetch(self, mock_get_all_models):
+
+    @patch("ollama_models.core.scraper.scrape_and_save")
+    def test_fetch(self, mock_scrape_and_save):
         """Test the fetch command."""
-        # Mock the scraper
-        mock_get_all_models.return_value = [{
-            "name": "test-model",
-            "description": "Test model",
-            "tags": [{"name": "latest", "parameter_size": "7B", "size": "4.1 GB"}]
-        }]
+        # Mock the scraper to write a valid file
+        def side_effect(output_file):
+            with open(output_file, 'w') as f:
+                json.dump([{
+                    "name": "test-model",
+                    "description": "Test model",
+                    "url": "https://ollama.com/library/test-model",
+                    "updated_timestamp": "2025-05-19T12:00:00.000000",
+                    "tags": [{"name": "latest", "parameter_size": "7B", "size": "4.1 GB"}]
+                }], f)
+            return output_file
+            
+        mock_scrape_and_save.side_effect = side_effect
         
         # Create a mock args object
         args = MagicMock()
         args.output = self.temp_models_json.name
         args.skip_validation = True
+        args.force = False
         
         # Run the fetch command
         result = model.cmd_fetch(args)
         
         # Check the result
         self.assertEqual(result, 0)
-        
-        # Check that the file was updated
+          # Check that the file was updated
         with open(self.temp_models_json.name, "r") as f:
             data = json.load(f)
             self.assertEqual(len(data), 1)
             self.assertEqual(data[0]["name"], "test-model")
     
+    @patch("ollama_models.file_utils.ModelFileManager.get_models_path")
     @patch("ollama_models.core.tag_selector.run_selector")
-    def test_edit(self, mock_run_selector):
+    def test_edit(self, mock_run_selector, mock_get_models_path):
         """Test the edit command."""
         # Mock the tag selector
         mock_run_selector.return_value = 0
         
+        # Mock the file manager to return our temp file path
+        mock_get_models_path.return_value = self.temp_models_json.name
+        
         # Create a mock args object
         args = MagicMock()
-        args.models_file = self.temp_models_json.name
+        args.models_file = None  # Test the case where models_file is None
         args.config_file = self.temp_config.name
         
         # Run the edit command
@@ -90,6 +101,7 @@ class TestModelCommands(unittest.TestCase):
         
         # Check the result
         self.assertEqual(result, 0)
+        mock_get_models_path.assert_called_once_with(None)
         mock_run_selector.assert_called_once_with(self.temp_models_json.name, self.temp_config.name)
     
     @patch("ollama_models.core.syncer.sync_ollama")
@@ -125,6 +137,24 @@ class TestModelCommands(unittest.TestCase):
         # Check the result
         self.assertEqual(result, 0)
         mock_init_from_api.assert_called_once()
+        
+    @patch("ollama_models.file_utils.ModelFileManager.create_local_models_file")
+    def test_init_local(self, mock_create_local):
+        """Test the init-local command."""
+        # Mock the file manager
+        output_path = os.path.join(os.getcwd(), "test_local_output.json")
+        mock_create_local.return_value = output_path
+        
+        # Create a mock args object
+        args = MagicMock()
+        args.output = "test_local_output.json"
+        
+        # Run the init-local command
+        result = model.cmd_init_local(args)
+        
+        # Check the result
+        self.assertEqual(result, 0)
+        mock_create_local.assert_called_once_with(output_path)
 
 if __name__ == "__main__":
     unittest.main()
