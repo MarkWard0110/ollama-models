@@ -101,20 +101,22 @@ class OllamaScraper:
                             sizes.append(param_size)
                         except ValueError:
                             pass
-                
-                # Add model info
+                  # Add model info
                 model_info = {
                     "name": model_name,
                     "url": model_url,
                     "description": description,
                     "pull_count": pull_count,
                     "tag_count": tag_count,
-                    "updated": updated,
                     "tags": [],
                     "capabilities": capabilities,
                     "sizes": sorted(list(set(sizes))) if sizes else []
                 }
                 
+                # Convert relative date to timestamp
+                updated_timestamp = self.convert_relative_date(updated)
+                if updated_timestamp:
+                    model_info["updated_timestamp"] = updated_timestamp
                 models.append(model_info)
                 
                 # Be nice to the server
@@ -327,13 +329,11 @@ class OllamaScraper:
                     # Fix tag name to remove model prefix if present
                     if ':' in tag_name and tag_name.startswith(f"{model_name}:"):
                         tag_name = tag_name.split(':', 1)[1]
-                    
-                    # Extract parameter size from tag name
+                      # Extract parameter size from tag name
                     param_size = self.extract_param_size(tag_name)
                     
                     # Extract quantization
                     quantization = self.extract_quantization(tag_name)
-                    
                     # Create tag info
                     tag_info = {
                         "name": tag_name,
@@ -341,11 +341,9 @@ class OllamaScraper:
                         "size": size,
                         "context_window": context_window,
                         "model_type": model_type,
-                        "updated": updated,
                         "updated_timestamp": updated_timestamp,
                         "parameter_size": param_size
                     }
-                    
                     # Add quantization only if present
                     if quantization:
                         tag_info["quantization"] = quantization
@@ -380,13 +378,11 @@ class OllamaScraper:
                     if len(tag_cells) > 1:
                         size_elem = tag_cells[1]
                         size = size_elem.text.strip() if size_elem else "Unknown"
-                    
-                    # Extract parameter size from tag name
+                      # Extract parameter size from tag name
                     param_size = self.extract_param_size(tag_name)
                     
                     # Extract quantization
                     quantization = self.extract_quantization(tag_name)
-                    
                     # Add this tag to our list with additional fields
                     tag_info = {
                         "name": tag_name,
@@ -394,7 +390,6 @@ class OllamaScraper:
                         "size": size,
                         "context_window": "Unknown",  # Not available in this layout
                         "model_type": "text",  # Default to text
-                        "updated": "",
                         "updated_timestamp": None,
                         "parameter_size": param_size
                     }
@@ -421,20 +416,17 @@ class OllamaScraper:
                     # Fix tag name to remove model prefix if present
                     if ':' in tag_name and tag_name.startswith(f"{model_name}:"):
                         tag_name = tag_name.split(':', 1)[1]
-                    
-                    # Extract parameter size from tag name
+                      # Extract parameter size from tag name
                     param_size = self.extract_param_size(tag_name)
                     
                     # Extract quantization
                     quantization = self.extract_quantization(tag_name)
-                    
                     tag_info = {
                         "name": tag_name,
                         "hash": "",
                         "size": "Unknown",
                         "context_window": "Unknown",
                         "model_type": "text",
-                        "updated": "",
                         "updated_timestamp": None,
                         "parameter_size": param_size
                     }
@@ -444,8 +436,7 @@ class OllamaScraper:
                         tag_info["quantization"] = quantization
                         
                     tags.append(tag_info)
-        
-        # Make sure we at least have a 'latest' tag if we found no tags
+          # Make sure we at least have a 'latest' tag if we found no tags
         if not tags:
             logger.warning(f"No tags found for {model_name}, creating a default 'latest' tag")
             tags.append({
@@ -454,7 +445,6 @@ class OllamaScraper:
                 "size": "Unknown",
                 "context_window": "Unknown",
                 "model_type": "text",
-                "updated": "",
                 "updated_timestamp": None,
                 "parameter_size": None
             })
@@ -540,11 +530,19 @@ def scrape_and_save(output_file):
     for model in models:
         model["updated_timestamp"] = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
         
-        # Add timestamps to tags
+        # Ensure "updated" field is removed from models
+        if "updated" in model:
+            del model["updated"]
+        
+        # Add timestamps to tags and remove "updated" field
         for tag in model["tags"]:
             # If tag doesn't already have a timestamp, add one
             if "updated_timestamp" not in tag or tag["updated_timestamp"] is None:
                 tag["updated_timestamp"] = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+            
+            # Remove "updated" field from tags
+            if "updated" in tag:
+                del tag["updated"]
     
     # Phase 4: Save to JSON file
     with open(output_file, 'w') as f:

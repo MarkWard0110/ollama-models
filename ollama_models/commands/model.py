@@ -174,10 +174,13 @@ def update_main_file(temp_file, main_file):
             with open(main_file, 'r') as src, open(backup_file, 'w') as dst:
                 dst.write(src.read())
             logger.info(f"Created backup at {backup_file}")
+          # Load the temp file data
+        with open(temp_file, 'r') as f:
+            models_data = json.load(f)
         
-        # Copy the temp file to the main file
-        with open(temp_file, 'r') as src, open(main_file, 'w') as dst:
-            dst.write(src.read())
+        # Write the updated data to the main file
+        with open(main_file, 'w') as f:
+            json.dump(models_data, f, indent=2)
         
         logger.info(f"Successfully updated {main_file}")
         return True
