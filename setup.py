@@ -18,14 +18,13 @@ setup(
     author="Binary Ward",
     description="Tools for managing and analyzing Ollama models",
     long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/binaryward/ollama-models",
-    packages=find_packages(),
+    long_description_content_type="text/markdown",    url="https://github.com/binaryward/ollama-models",
+    packages=find_packages(exclude=["tests", "tests.*"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],    python_requires=">=3.8",
+    ],python_requires=">=3.8",
     install_requires=[
         "requests>=2.31.0",
         "beautifulsoup4>=4.12.2",

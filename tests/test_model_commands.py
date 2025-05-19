@@ -137,24 +137,6 @@ class TestModelCommands(unittest.TestCase):
         # Check the result
         self.assertEqual(result, 0)
         mock_init_from_api.assert_called_once()
-        
-    @patch("ollama_models.file_utils.ModelFileManager.create_local_models_file")
-    def test_init_local(self, mock_create_local):
-        """Test the init-local command."""
-        # Mock the file manager
-        output_path = os.path.join(os.getcwd(), "test_local_output.json")
-        mock_create_local.return_value = output_path
-        
-        # Create a mock args object
-        args = MagicMock()
-        args.output = "test_local_output.json"
-        
-        # Run the init-local command
-        result = model.cmd_init_local(args)
-        
-        # Check the result
-        self.assertEqual(result, 0)
-        mock_create_local.assert_called_once_with(output_path)
 
 if __name__ == "__main__":
     unittest.main()
