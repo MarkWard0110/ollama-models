@@ -25,10 +25,12 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.8",    install_requires=[
+    ],    python_requires=">=3.8",
+    install_requires=[
         "requests>=2.31.0",
         "beautifulsoup4>=4.12.2",
+        # Use windows-curses on Windows, standard curses already included on Unix/Linux/Mac
+        "windows-curses>=2.4.1; platform_system == 'Windows'"
     ],
     extras_require={
         "dev": [

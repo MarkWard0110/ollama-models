@@ -3,9 +3,18 @@ Model tag selector functionality.
 """
 import json
 import os
-import curses
 import sys
 import logging
+
+try:
+    import curses
+except ImportError:
+    print("Warning: Curses module not available. Interactive tag selection may not work properly.", file=sys.stderr)
+    # Creating a mock curses module with minimal functionality to prevent crashes
+    class MockCurses:
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+    curses = MockCurses()
 
 logger = logging.getLogger("ollama_models.core.tag_selector")
 
