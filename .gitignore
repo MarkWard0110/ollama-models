@@ -1,3 +1,9 @@
+# Ignore generated files
+selected_tags.conf
+selected_tags.conf.*
+context_usage.csv
+max_context.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
