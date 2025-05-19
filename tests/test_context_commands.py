@@ -27,8 +27,7 @@ class TestContextCommands(unittest.TestCase):
         for temp_file in [self.temp_usage_csv.name, self.temp_probe_csv.name]:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
-    
-    @patch("ollama_models.core.context_usage.generate_usage_report")
+    @patch("ollama_models.commands.context.generate_usage_report")
     def test_usage(self, mock_generate_report):
         """Test the context usage command."""
         # Mock the report generator
@@ -48,8 +47,7 @@ class TestContextCommands(unittest.TestCase):
         # Check the result
         self.assertEqual(result, 0)
         mock_generate_report.assert_called_once_with(self.temp_usage_csv.name, "test-model")
-    
-    @patch("ollama_models.core.context_probe.probe_max_context")
+    @patch("ollama_models.commands.context.probe_max_context")
     def test_probe(self, mock_probe):
         """Test the context probe command."""
         # Mock the probe function
