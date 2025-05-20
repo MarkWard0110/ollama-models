@@ -142,7 +142,7 @@ def draw_menu(stdscr, title, items, current_idx, start_idx):
         stdscr.addstr(row, 2, display_str[: width - 3])
     stdscr.refresh()
 
-def interactive_menu_select(stdscr, title, items):
+def interactive_menu_select(stdscr, title, items, initial_idx=0):
     """
     Show an interactive menu for selection.
     
@@ -150,30 +150,32 @@ def interactive_menu_select(stdscr, title, items):
         stdscr (window): Curses window
         title (str): Menu title
         items (list): Menu items
-        
+        initial_idx (int): Index to start selection at
     Returns:
         str or None: Selected item or None if cancelled
+        int: The index of the selected/cancelled item
     """
     title = title.strip('\n')
-    idx = 0
-    start_idx = 0
+    idx = initial_idx
+    height, _ = stdscr.getmaxyx()
+    max_viewable = height - 2
+    # Center the selected item if possible
+    start_idx = max(0, min(idx - max_viewable // 2, len(items) - max_viewable)) if len(items) > max_viewable else 0
     while True:
         draw_menu(stdscr, title, items, idx, start_idx)
         key = stdscr.getch()
         if key == curses.KEY_UP and idx > 0:
             idx -= 1
             if idx < start_idx:
-                start_idx -= 1
+                start_idx = max(0, start_idx - 1)
         elif key == curses.KEY_DOWN and idx < len(items) - 1:
             idx += 1
-            height, _ = stdscr.getmaxyx()
-            max_viewable = height - 2
             if idx >= start_idx + max_viewable:
-                start_idx += 1
+                start_idx = min(start_idx + 1, len(items) - max_viewable)
         elif key in (curses.KEY_ENTER, 10, 13):
-            return items[idx]
+            return items[idx], idx
         elif key in (27, ord('q')):
-            return None
+            return None, idx
 
 def interactive_toggle_tags(stdscr, model, size, tags, selected):
     """
@@ -187,7 +189,7 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
         selected (set): Set of selected tags
         
     Returns:
-        tuple: (changes_made, selected)
+        tuple: (changes_made, selected, go_back)
     """
     idx = 0
     start_idx = 0
@@ -200,32 +202,26 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
         max_viewable = height - 4  # Reserve some lines for instructions
         
         # Show instructions
-        stdscr.addstr(height-2, 0, "Space: toggle selection | Enter: done | q: quit")
+        stdscr.addstr(height-2, 0, "Space: toggle selection | Enter: done | q/esc: back")
         
         # Display visible slice from items
         visible_items = tags[start_idx : start_idx + max_viewable]
         for i, tag in enumerate(visible_items):
             row = i + 2
             tag_name = tag["name"]
-            # Format the record as "model:tag_name" for selection checking
             record = f"{model}:{tag_name}"
             is_selected = record in selected
-            
-            # Format: [X] or [ ] followed by tag name and size
             prefix = "[X]" if is_selected else "[ ]"
             cursor = ">" if (start_idx + i) == idx else " "
             display_str = f"{cursor} {prefix} {tag_name} ({tag['size']})"
-            
             if (start_idx + i) == idx:
                 stdscr.attron(curses.A_REVERSE)
                 stdscr.addstr(row, 2, display_str[:width-3])
                 stdscr.attroff(curses.A_REVERSE)
             else:
                 stdscr.addstr(row, 2, display_str[:width-3])
-        
         stdscr.refresh()
         key = stdscr.getch()
-        
         if key == curses.KEY_UP and idx > 0:
             idx -= 1
             if idx < start_idx:
@@ -243,9 +239,9 @@ def interactive_toggle_tags(stdscr, model, size, tags, selected):
                 selected.add(record)
             changes_made = True
         elif key in (curses.KEY_ENTER, 10, 13):  # Enter key
-            return changes_made, selected
+            return changes_made, selected, False
         elif key in (27, ord('q')):  # Escape or q
-            return changes_made, selected
+            return changes_made, selected, True
 
 def interactive_view_config(stdscr, selected, models_data, config_file):
     """
@@ -398,71 +394,63 @@ def _tag_selector_ui(stdscr, models, selected, config_file):
     need_save = False
     while True:
         # Show main menu
-        choice = interactive_menu_select(
+        choice, _ = interactive_menu_select(
             stdscr,
             "Main Menu:\nSelect an option (↑/↓, Enter, q=quit)",
             ["Select model", "Edit current config", "Quit"],
         )
         
         if choice == "Select model":
+            model_idx = 0
             while True:
                 # Create display strings with additional information
                 model_display_list = []
                 model_name_map = {}  # Map display strings back to model names
-                
                 for model_name in sorted(models.keys()):
                     display_str = get_model_info_display(model_name, models[model_name])
                     model_display_list.append(display_str)
                     model_name_map[display_str] = model_name
-                
-                model_display = interactive_menu_select(stdscr, "\nSelect a model (↑/↓, Enter, q to quit):", model_display_list)
+                model_display, model_idx = interactive_menu_select(
+                    stdscr, "\nSelect a model (↑/↓, Enter, q to quit):", model_display_list, model_idx
+                )
                 if not model_display:
                     break
-                    
-                # Get the actual model name from our mapping
                 model = model_name_map[model_display]
                 sizes_dict = models[model]["sizes_dict"]
-                  # Show size menu for the selected model
                 def parse_size(size_str):
                     if size_str is None:
                         return 0
-                    # Remove any trailing 'b' or 'B' and convert to float
                     if isinstance(size_str, str) and size_str.lower().endswith('b'):
                         size_str = size_str[:-1]
                     try:
                         return float(size_str)
                     except (ValueError, TypeError):
                         return 0
-                
-                size_list = sorted([s for s in sizes_dict.keys() if s is not None], 
-                                 key=parse_size)
+                size_list = sorted([s for s in sizes_dict.keys() if s is not None], key=parse_size)
                 if not size_list:
                     show_message(stdscr, f"No sizes available for {model}")
                     continue
-                    
                 size_labels = [f"{size}" if size is not None else "Unknown" for size in size_list]
-                title = f"\nSelect parameter size for {model}"
-                size_label = interactive_menu_select(stdscr, title, size_labels)
-                
-                if size_label is None:
-                    continue
-                    
-                size_idx = size_labels.index(size_label)
-                size = size_list[size_idx]
-                
-                # Show tags menu for the selected model and size
-                tags = models[model]["sizes_dict"][size]
-                if not tags:
-                    show_message(stdscr, f"No tags available for {model} at size {size}B")
-                    continue
-                    
-                changes_made, selected = interactive_toggle_tags(stdscr, model, f"{size}B", tags, selected)
-                
-                if changes_made:
-                    need_save = True
-                    save_config(selected, config_file)
-                    show_message(stdscr, f"Saved {len(selected)} selected tags to {config_file}")
-                
+                size_idx = 0
+                while True:
+                    title = f"\nSelect parameter size for {model}"
+                    size_label, size_idx = interactive_menu_select(stdscr, title, size_labels, size_idx)
+                    if size_label is None:
+                        break  # Go back to model selection
+                    size = size_list[size_idx]
+                    tags = models[model]["sizes_dict"][size]
+                    if not tags:
+                        show_message(stdscr, f"No tags available for {model} at size {size}B")
+                        continue
+                    changes_made, selected, go_back = interactive_toggle_tags(stdscr, model, f"{size}B", tags, selected)
+                    if changes_made:
+                        need_save = True
+                        save_config(selected, config_file)
+                        show_message(stdscr, f"Saved {len(selected)} selected tags to {config_file}")
+                    if go_back:
+                        continue  # Go back to size selection for this model, restoring size_idx
+                    break  # Exit size selection loop
+    
         elif choice == "Edit current config":
             changes_made, selected = interactive_view_config(stdscr, selected, models, config_file)
             if changes_made:
