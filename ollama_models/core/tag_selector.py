@@ -261,9 +261,9 @@ def interactive_view_config(stdscr, selected, models_data, config_file):
         tuple: (changes_made, selected)
     """
     temp_selected = set(selected)
-    tags = sorted(temp_selected)
+    tags = sorted(selected)  # Always show all tags from the original config
     changes_made = False
-    
+
     def get_tag_size(m_data, model, tag_name):
         for size_key, tag_list in m_data[model]["sizes_dict"].items():
             for t in tag_list:
@@ -278,7 +278,7 @@ def interactive_view_config(stdscr, selected, models_data, config_file):
         stdscr.addstr(0, 0, "Current Configuration")
         height, width = stdscr.getmaxyx()
         max_viewable = height - 4
-        
+
         if not tags:
             stdscr.addstr(2, 2, "No tags selected.")
         else:
@@ -293,23 +293,23 @@ def interactive_view_config(stdscr, selected, models_data, config_file):
                         tag_size = "N/A"
                 else:
                     tag_size = "N/A"
-                    
+
                 mark = "[X]" if tag in temp_selected else "[ ]"
                 prefix = "> " if (start_idx + i) == idx else "  "
-                
+
                 if (start_idx + i) == idx:
                     stdscr.attron(curses.A_REVERSE)
                     stdscr.addstr(i + 2, 2, f"{prefix}{mark} {tag} ({tag_size})"[: width - 3])
                     stdscr.attroff(curses.A_REVERSE)
                 else:
                     stdscr.addstr(i + 2, 2, f"{prefix}{mark} {tag} ({tag_size})"[: width - 3])
-        
+
         # Show instructions
         stdscr.addstr(height-2, 0, "Space: toggle selection | Enter/s: save & exit | q: quit")
         stdscr.refresh()
 
         key = stdscr.getch()
-        
+
         if key == curses.KEY_UP and idx > 0 and tags:
             idx -= 1
             if idx < start_idx:
@@ -319,12 +319,13 @@ def interactive_view_config(stdscr, selected, models_data, config_file):
             if idx >= start_idx + max_viewable:
                 start_idx += 1
         elif key == ord(' ') and tags:  # Toggle selection
-            if tags[idx] in temp_selected:
-                temp_selected.remove(tags[idx])
+            tag_to_toggle = tags[idx]
+            if tag_to_toggle in temp_selected:
+                temp_selected.remove(tag_to_toggle)
             else:
-                temp_selected.add(tags[idx])
+                temp_selected.add(tag_to_toggle)
             changes_made = True
-            tags = sorted(temp_selected)  # Update the tags list
+            # Do not update tags list here; keep all original tags visible
             if idx >= len(tags):
                 idx = max(0, len(tags) - 1)
         elif key in (curses.KEY_ENTER, 10, 13, ord('s')):  # Enter or s key
