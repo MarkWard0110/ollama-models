@@ -10,6 +10,10 @@ from ollama_models.config import DEFAULT_API_BASE, API_TIMEOUT
 # Default API base URL
 API_BASE = DEFAULT_API_BASE
 
+# Force the logger for 'ollama_models.utils' to DEBUG level at the top of the file for troubleshooting
+logger = logging.getLogger("ollama_models.utils")
+logger.setLevel(logging.INFO)
+
 def fetch_installed_models():
     """
     Fetch installed models from the Ollama API.
@@ -58,45 +62,129 @@ def fetch_max_context_size(model_name):
 
 def try_model_call(model_name, context_size):
     """
-    Test if a model can handle a given context size.
+    Test if a model can handle a given context size and return metrics.
     
     Args:
         model_name (str): Name of the model
         context_size (int): Context size to test
         
     Returns:
-        bool: True if the model can handle the context size, False otherwise
+        dict: {
+            'success': bool,
+            'tokens_per_second': float or None,
+            'decode_tokens_per_second': float or None,
+            'total_duration': float or None (seconds),
+            'total_duration_human': str or None,
+            'eval_count': int or None,
+            'prompt_eval_count': int or None,
+            'eval_duration': float or None (ns),
+            'prompt_eval_duration': float or None (ns),
+            'load_duration': float or None (ns),
+            'raw_response': dict or None
+        }
     """
+    import time
     logger = logging.getLogger("ollama_models.utils")
-    
-    # Try a chat completion first
     payload_chat = {
         "model": model_name,
-        "prompt": "What is the capital of France?",
         "stream": False,
         "options": {
             "num_ctx": context_size,
             "max_tokens": 64,
-        }
+        },
+        "messages": [
+            {
+                "role": "user",
+                "content": "What is the capital of France?",
+            }
+        ]        
     }
     try:
         logger.debug(f"Testing {model_name} with context size {context_size} via chat API")
+        start = time.time()
         resp = requests.post(f"{API_BASE}/api/chat", json=payload_chat, timeout=API_TIMEOUT)
         resp.raise_for_status()
-        return True
+        end = time.time()
+        data = resp.json()
+        # Extract metrics if present
+        eval_count = data.get('eval_count')
+        prompt_eval_count = data.get('prompt_eval_count')
+        eval_duration = data.get('eval_duration')
+        prompt_eval_duration = data.get('prompt_eval_duration')
+        load_duration = data.get('load_duration')
+        total_duration = data.get('total_duration')
+        # Fallback to wall time if not present
+        if total_duration is None:
+            total_duration = int((end - start) * 1e9)  # ns
+        # Compute metrics
+        tokens_per_second = None
+        decode_tokens_per_second = None
+        if total_duration and prompt_eval_count is not None and eval_count is not None:
+            tokens_per_second = (prompt_eval_count + eval_count) / (total_duration / 1e9)
+        if eval_duration and eval_count is not None:
+            decode_tokens_per_second = eval_count / (eval_duration / 1e9)
+        # Human-friendly duration
+        def human_time(ns):
+            s = ns / 1e9
+            if s < 1:
+                return f"{int(ns/1e6)} ms"
+            elif s < 60:
+                return f"{s:.2f} s"
+            else:
+                m = int(s // 60)
+                sec = s % 60
+                return f"{m}m {sec:.1f}s"
+        total_duration_human = human_time(total_duration) if total_duration else None
+        return {
+            'success': True,
+            'tokens_per_second': tokens_per_second,
+            'decode_tokens_per_second': decode_tokens_per_second,
+            'total_duration': total_duration / 1e9 if total_duration else None,
+            'total_duration_human': total_duration_human,
+            'eval_count': eval_count,
+            'prompt_eval_count': prompt_eval_count,
+            'eval_duration': eval_duration,
+            'prompt_eval_duration': prompt_eval_duration,
+            'load_duration': load_duration,
+            'raw_response': data
+        }
     except requests.RequestException as e:
         logger.debug(f"Chat API test failed for {model_name} with context {context_size}: {str(e)}")
-        
         # If chat fails, try embeddings
         embed_payload = {"model": model_name, "input": "Test"}
         try:
             logger.debug(f"Testing {model_name} with context size {context_size} via embed API")
             resp = requests.post(f"{API_BASE}/api/embed", json=embed_payload, timeout=API_TIMEOUT)
             resp.raise_for_status()
-            return True
+            data = resp.json()
+            return {
+                'success': True,
+                'tokens_per_second': None,
+                'decode_tokens_per_second': None,
+                'total_duration': None,
+                'total_duration_human': None,
+                'eval_count': None,
+                'prompt_eval_count': None,
+                'eval_duration': None,
+                'prompt_eval_duration': None,
+                'load_duration': None,
+                'raw_response': data
+            }
         except requests.RequestException as e:
             logger.debug(f"Embed API test failed for {model_name} with context {context_size}: {str(e)}")
-            return False
+            return {
+                'success': False,
+                'tokens_per_second': None,
+                'decode_tokens_per_second': None,
+                'total_duration': None,
+                'total_duration_human': None,
+                'eval_count': None,
+                'prompt_eval_count': None,
+                'eval_duration': None,
+                'prompt_eval_duration': None,
+                'load_duration': None,
+                'raw_response': None
+            }
 
 def fetch_memory_usage(model_name):
     """

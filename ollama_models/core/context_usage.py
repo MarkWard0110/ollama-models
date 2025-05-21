@@ -38,7 +38,10 @@ def save_progress(output_file, usage_rows):
         sorted_rows = sorted(usage_rows, key=lambda row: row[0])
         with open(output_file, "w", newline="") as usage_file:
             usage_writer = csv.writer(usage_file)
-            usage_writer.writerow(["model_name", "context_size", "memory_allocated"])
+            usage_writer.writerow([
+                "model_name", "context_size", "memory_allocated",
+                "tokens_per_second", "decode_tokens_per_second", "total_duration", "total_duration_human"
+            ])
             for row in sorted_rows:
                 usage_writer.writerow(row)
         logger.debug(f"Saved progress to {output_file} with {len(usage_rows)} entries")
@@ -106,15 +109,21 @@ def generate_usage_report(output_file, model_name=None):
     return usage_rows
 
 def measure_usage(output_file, usage_set, usage_rows, name, ctx):
-    success = try_model_call(name, ctx)
-    if success:
+    result = try_model_call(name, ctx)
+    if result['success']:
         size, size_vram = fetch_memory_usage(name)
         size_hr = format_size(size)
         size_vram_hr = format_size(size_vram)
         logger.info(f"Measured at context = {ctx}, total allocated: {size_hr}, VRAM: {size_vram_hr}")
-        usage_rows.append([name, ctx, size_hr])
+        usage_rows.append([
+            name, ctx, size_hr,
+            result.get('tokens_per_second'),
+            result.get('decode_tokens_per_second'),
+            result.get('total_duration'),
+            result.get('total_duration_human')
+        ])
         usage_set.add((name, ctx))
-                # Save progress after each successful test
+        # Save progress after each successful test
         save_progress(output_file, usage_rows)
     else:
         logger.info(f"Failed chat/embed call for {name} at context size {ctx}")
