@@ -37,47 +37,58 @@ def fits_in_vram(model_name, context_size):
 
 def find_max_fit_in_vram(model_name, max_ctx):
     """
-    Find maximum context size that fits in VRAM for a model, using pure binary search.
-    Logs the number of tries.
-    
-    Args:
-        model_name (str): Name of the model
-        max_ctx (int): Maximum context size to test
-    
-    Returns:
-        int: Maximum context size that fits in VRAM
+    Find maximum context size that fits in VRAM for a model, using exponential search to bracket, then pure binary search to converge.
+    This approach is robust for all memory curves and VRAM sizes.
     """
-    logger.info(f"Finding max context size fitting in VRAM for {model_name} (pure binary search)...")
+    logger.info(f"Finding max context size fitting in VRAM for {model_name} (exponential + binary search)...")
     tries = []  # (context_size, fits, mem_used, vram_used)
     min_ctx = 2048
-    low = min_ctx
-    high = max_ctx
-    best_fit = 0
-    best_metrics = None
-    # First, check if the minimum fits
-    fits, metrics = fits_in_vram(model_name, min_ctx)
-    mem_used, vram_used = fetch_memory_usage(model_name)
-    tries.append((min_ctx, fits, mem_used, vram_used))
-    if not fits:
+    # Step 1: Exponential search to bracket the solution
+    ctx = min_ctx
+    last_fit = None
+    last_fail = None
+    last_fit_metrics = None
+    while ctx <= max_ctx:
+        fits, metrics = fits_in_vram(model_name, ctx)
+        mem_used, vram_used = fetch_memory_usage(model_name)
+        tries.append((ctx, fits, mem_used, vram_used))
+        if fits:
+            last_fit = (ctx, mem_used, vram_used)
+            last_fit_metrics = metrics
+            if ctx == max_ctx:
+                break
+            ctx = min(ctx * 2, max_ctx)
+        else:
+            last_fail = (ctx, mem_used, vram_used)
+            break
+    if not last_fit:
         logger.info(f"{model_name} cannot fit in VRAM even at {min_ctx}.")
         logger.info(f"Tried: {tries}")
         logger.info(f"Total tries: {len(tries)}")
         return 0, None
-    best_fit = min_ctx
-    best_metrics = metrics
-    # Binary search
-    while low < high:
-        mid = (low + high + 1) // 2  # bias upward to find the highest fit
-        logger.info(f"Binary search test at context size {mid}...")
-        fits, metrics = fits_in_vram(model_name, mid)
+    if not last_fail:
+        # Never failed, so max_ctx is the answer
+        logger.info(f"Never failed, max context size is {max_ctx}.")
+        logger.info(f"Tried: {tries}")
+        logger.info(f"Total tries: {len(tries)}")
+        return max_ctx, last_fit_metrics
+    # Step 2: Pure binary search between last fit and first fail
+    low_ctx = last_fit[0]
+    high_ctx = last_fail[0]
+    best_fit = low_ctx
+    best_metrics = last_fit_metrics
+    while high_ctx - low_ctx > 1:
+        mid_ctx = (low_ctx + high_ctx) // 2
+        logger.info(f"Binary search test at context size {mid_ctx}...")
+        fits, metrics = fits_in_vram(model_name, mid_ctx)
         mem_used, vram_used = fetch_memory_usage(model_name)
-        tries.append((mid, fits, mem_used, vram_used))
+        tries.append((mid_ctx, fits, mem_used, vram_used))
         if fits:
-            best_fit = mid
+            low_ctx = mid_ctx
+            best_fit = mid_ctx
             best_metrics = metrics
-            low = mid
         else:
-            high = mid - 1
+            high_ctx = mid_ctx
     logger.info(f"Highest context size fitting in VRAM for {model_name}: {best_fit}")
     logger.info(f"Probe tries: {[(c, f) for c, f, _, _ in sorted(tries)]}")
     logger.info(f"Total tries: {len(tries)}")
