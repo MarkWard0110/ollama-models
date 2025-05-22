@@ -37,57 +37,50 @@ def fits_in_vram(model_name, context_size):
 
 def find_max_fit_in_vram(model_name, max_ctx):
     """
-    Find maximum context size that fits in VRAM for a model.
-    Reports progress during the search for better monitoring.
+    Find maximum context size that fits in VRAM for a model, using pure binary search.
+    Logs the number of tries.
     
     Args:
         model_name (str): Name of the model
         max_ctx (int): Maximum context size to test
-        
+    
     Returns:
         int: Maximum context size that fits in VRAM
     """
-    logger.info(f"Finding max context size fitting in VRAM for {model_name}...")
+    logger.info(f"Finding max context size fitting in VRAM for {model_name} (pure binary search)...")
+    tries = []  # (context_size, fits, mem_used, vram_used)
+    min_ctx = 2048
+    low = min_ctx
+    high = max_ctx
     best_fit = 0
     best_metrics = None
-    start = 2048
-    fits, metrics = fits_in_vram(model_name, start)
+    # First, check if the minimum fits
+    fits, metrics = fits_in_vram(model_name, min_ctx)
+    mem_used, vram_used = fetch_memory_usage(model_name)
+    tries.append((min_ctx, fits, mem_used, vram_used))
     if not fits:
-        logger.info(f"{model_name} cannot fit in VRAM even at 2048.")
+        logger.info(f"{model_name} cannot fit in VRAM even at {min_ctx}.")
+        logger.info(f"Tried: {tries}")
+        logger.info(f"Total tries: {len(tries)}")
         return 0, None
-    
-    logger.info(f"Initial test successful at context size {start}.")
-    high = start
+    best_fit = min_ctx
     best_metrics = metrics
-    
-    # Exponential search phase
-    while high <= max_ctx:
-        fits, metrics = fits_in_vram(model_name, high)
-        if fits:
-            best_fit = high
-            best_metrics = metrics
-            logger.info(f"Model {model_name} fits at context size {high}, trying larger size...")
-            high *= 2
-        else:
-            break
-            
-    # Binary search phase
-    logger.info(f"Starting binary search between {high // 2} and {min(high, max_ctx)}...")
-    left, right = high // 2, min(high, max_ctx)
-    while left <= right:
-        mid = (left + right) // 2
-        logger.info(f"Testing context size {mid}...")
+    # Binary search
+    while low < high:
+        mid = (low + high + 1) // 2  # bias upward to find the highest fit
+        logger.info(f"Binary search test at context size {mid}...")
         fits, metrics = fits_in_vram(model_name, mid)
+        mem_used, vram_used = fetch_memory_usage(model_name)
+        tries.append((mid, fits, mem_used, vram_used))
         if fits:
             best_fit = mid
             best_metrics = metrics
-            logger.info(f"Success at {mid}, trying larger size...")
-            left = mid + 1
+            low = mid
         else:
-            logger.info(f"Failed at {mid}, trying smaller size...")
-            right = mid - 1
-            
+            high = mid - 1
     logger.info(f"Highest context size fitting in VRAM for {model_name}: {best_fit}")
+    logger.info(f"Probe tries: {[(c, f) for c, f, _, _ in sorted(tries)]}")
+    logger.info(f"Total tries: {len(tries)}")
     return best_fit, best_metrics
 
 def probe_max_context(output_file, model_name=None):
