@@ -4,9 +4,11 @@ Context probe analysis for finding maximum context sizes for Ollama models.
 import os
 import csv
 import logging
+import pathlib
 from ollama_models.utils import (
     fetch_installed_models, fetch_max_context_size,
-    try_model_call, fetch_memory_usage, format_size
+    try_model_call, fetch_memory_usage, format_size,
+    fetch_ollama_version
 )
 from ollama_models.config import API_TIMEOUT
 
@@ -101,12 +103,22 @@ def probe_max_context(output_file, model_name=None):
     Returns:
         list: List of probe data rows
     """
+    # Get the Ollama version and format the output file
+    ollama_version = fetch_ollama_version()
+    
+    # Process the output file path to include the Ollama version
+    path_obj = pathlib.Path(output_file)
+    version_output_file = str(path_obj.with_stem(f"{path_obj.stem}_{ollama_version}"))
+    
+    logger.info(f"Using Ollama version {ollama_version} for context probe")
+    logger.info(f"Output will be saved to {version_output_file}")
+    
     fit_models = set()
     fit_rows = []
 
     # Read existing fit data (skip header)
-    if os.path.isfile(output_file):
-        with open(output_file, "r", newline="") as ff:
+    if os.path.isfile(version_output_file):
+        with open(version_output_file, "r", newline="") as ff:
             r = csv.reader(ff)
             next(r, None)
             for row in r:
@@ -119,12 +131,10 @@ def probe_max_context(output_file, model_name=None):
     if model_name:
         models = [{"name": model_name}]
     else:
-        models = fetch_installed_models()
-
-    # Function to write current fit data to file
+        models = fetch_installed_models()    # Function to write current fit data to file
     def write_fit_data():
         sorted_rows = sorted(fit_rows, key=lambda row: row[0])
-        with open(output_file, 'w', newline="") as fit_file:
+        with open(version_output_file, 'w', newline="") as fit_file:
             fit_writer = csv.writer(fit_file)
             fit_writer.writerow([
                 "model_name", "max_context_size", "is_model_max",

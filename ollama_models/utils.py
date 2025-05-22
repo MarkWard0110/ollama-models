@@ -238,3 +238,23 @@ def set_api_base(url):
     """Set the API base URL"""
     global API_BASE
     API_BASE = url
+
+def fetch_ollama_version():
+    """
+    Fetch the Ollama version from the API.
+    
+    Returns:
+        str: The Ollama version string or "unknown" if it cannot be determined
+    """
+    logger = logging.getLogger("ollama_models.utils")
+    try:
+        logger.debug("Fetching Ollama version")
+        resp = requests.get(f"{API_BASE}/api/version", timeout=API_TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        version = data.get("version", "unknown")
+        logger.info(f"Detected Ollama version: {version}")
+        return version
+    except requests.RequestException as e:
+        logger.error(f"Error fetching Ollama version: {str(e)}")
+        return "unknown"

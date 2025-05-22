@@ -3,6 +3,8 @@ selected_tags.conf
 selected_tags.conf.*
 context_usage.csv
 max_context.csv
+context_usage_*.csv
+max_context_*.csv
 ollama_models.json.*
 
 # Byte-compiled / optimized / DLL files

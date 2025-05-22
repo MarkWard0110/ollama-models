@@ -5,9 +5,11 @@ import os
 import csv
 import logging
 import math
+import pathlib
 from ollama_models.utils import (
     fetch_installed_models, fetch_max_context_size,
-    try_model_call, fetch_memory_usage, format_size
+    try_model_call, fetch_memory_usage, format_size,
+    fetch_ollama_version
 )
 from ollama_models.config import API_TIMEOUT, DEFAULT_MAX_CONTEXT_CSV
 
@@ -59,12 +61,22 @@ def generate_usage_report(output_file, model_name=None):
     Returns:
         list: List of usage data rows
     """
+    # Get the Ollama version and format the output file
+    ollama_version = fetch_ollama_version()
+    
+    # Process the output file path to include the Ollama version
+    path_obj = pathlib.Path(output_file)
+    version_output_file = str(path_obj.with_stem(f"{path_obj.stem}_{ollama_version}"))
+    
+    logger.info(f"Using Ollama version {ollama_version} for context usage report")
+    logger.info(f"Output will be saved to {version_output_file}")
+    
     usage_set = set()
     usage_rows = []
 
     # Read existing usage data (skip header)
-    if os.path.isfile(output_file):
-        with open(output_file, "r", newline="") as uf:
+    if os.path.isfile(version_output_file):
+        with open(version_output_file, "r", newline="") as uf:
             r = csv.reader(uf)
             next(r, None)
             for row in r:
@@ -94,17 +106,17 @@ def generate_usage_report(output_file, model_name=None):
                 ctx *= 2
                 continue
                 
-            measure_usage(output_file, usage_set, usage_rows, name, ctx)
+            measure_usage(version_output_file, usage_set, usage_rows, name, ctx)
             ctx *= 2
 
         if not is_power_of_two(max_ctx):
             if (name, max_ctx) in usage_set:
                 logger.info(f"Skipping model {name} at context = {max_ctx}: already tested.")
             else:
-                measure_usage(output_file, usage_set, usage_rows, name, max_ctx)
+                measure_usage(version_output_file, usage_set, usage_rows, name, max_ctx)
 
     # Final save and sort of usage file
-    save_progress(output_file, usage_rows)
+    save_progress(version_output_file, usage_rows)
             
     return usage_rows
 
