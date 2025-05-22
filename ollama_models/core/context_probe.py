@@ -35,98 +35,62 @@ def fits_in_vram(model_name, context_size):
     logger.info(f"Memory usage for {model_name} at {context_size}: total={size_hr}, VRAM={size_vram_hr}")
     return (size_vram >= size), result
 
-def find_max_fit_in_vram(model_name, max_ctx):
+def find_max_fit_in_vram(model_name, max_ctx, granularity=32):
     """
-    Find maximum context size that fits in VRAM for a model, using bidirectional exponential search to bracket, then pure binary search to converge.
-    This approach adapts the starting point and direction for optimal bracketing.
+    Find maximum context size that fits in VRAM for a model using a prediction-driven (secant) search.
+    Optimized: If min_ctx == max_ctx, probe only once.
     """
-    logger.info(f"Finding max context size fitting in VRAM for {model_name} (bidirectional exponential + binary search)...")
+    logger.info(f"Finding max context size fitting in VRAM for {model_name} (prediction-driven secant search)...")
     tries = []  # (context_size, fits, mem_used, vram_used)
     min_ctx = 2048
-    # Start in the middle of the range
-    start = max(min_ctx, max_ctx // 2)
-    last_fit = None
-    last_fail = None
-    last_fit_metrics = None
-    last_fail_metrics = None
-    fits, metrics = fits_in_vram(model_name, start)
-    mem_used, vram_used = fetch_memory_usage(model_name)
-    tries.append((start, fits, mem_used, vram_used))
-    # Optimization: If start == max_ctx and it fits, return immediately
-    if fits and start == max_ctx:
-        last_fit = (start, mem_used, vram_used)
-        last_fit_metrics = metrics
-        return _log_and_return_max_fit(max_ctx, last_fit_metrics, tries)
-    if fits:
-        # Exponential search upward
-        last_fit = (start, mem_used, vram_used)
-        last_fit_metrics = metrics
-        ctx = min(start * 2, max_ctx)
-        while ctx <= max_ctx:
-            if ctx == start:
-                break  # Prevent redundant try
-            fits, metrics = fits_in_vram(model_name, ctx)
-            mem_used, vram_used = fetch_memory_usage(model_name)
-            tries.append((ctx, fits, mem_used, vram_used))
-            if fits:
-                last_fit = (ctx, mem_used, vram_used)
-                last_fit_metrics = metrics
-                if ctx == max_ctx:
-                    break
-                ctx = min(ctx * 2, max_ctx)
+    # Special case: min_ctx == max_ctx
+    if min_ctx == max_ctx:
+        fits, metrics = fits_in_vram(model_name, min_ctx)
+        mem, vram = fetch_memory_usage(model_name)
+        tries.append((min_ctx, fits, mem, vram))
+        return _log_and_return_max_fit(min_ctx if fits else 0, metrics if fits else None, tries)
+    # Step 1: Find initial bracket
+    fits_low, metrics_low = fits_in_vram(model_name, min_ctx)
+    mem_low, vram_low = fetch_memory_usage(model_name)
+    tries.append((min_ctx, fits_low, mem_low, vram_low))
+    if not fits_low:
+        return _log_and_return_max_fit(0, None, tries)
+    fits_high, metrics_high = fits_in_vram(model_name, max_ctx)
+    mem_high, vram_high = fetch_memory_usage(model_name)
+    tries.append((max_ctx, fits_high, mem_high, vram_high))
+    if fits_high:
+        return _log_and_return_max_fit(max_ctx, metrics_high, tries)
+    # Bracket: low (fits), high (fails)
+    low, high = min_ctx, max_ctx
+    mem_low_val, mem_high_val = vram_low, vram_high
+    best_metrics = metrics_low
+    vram_capacity = vram_high  # Use the VRAM at fail as the capacity estimate
+    while high - low > granularity:
+        # Fit linear model: mem(c) ≈ a·c + b
+        if high == low:
+            c_guess = low
+        else:
+            a = (mem_high_val - mem_low_val) / (high - low)
+            if a == 0:
+                c_guess = (low + high) // 2
             else:
-                last_fail = (ctx, mem_used, vram_used)
-                last_fail_metrics = metrics
-                break
+                b = mem_low_val - a * low
+                c_guess = int((vram_capacity - b) / a)
+                # Clamp strictly inside (low, high)
+                if c_guess <= low or c_guess >= high:
+                    c_guess = (low + high) // 2
+        logger.info(f"Probing at context size {c_guess} (low={low}, high={high})...")
+        fits_guess, metrics_guess = fits_in_vram(model_name, c_guess)
+        mem_guess, vram_guess = fetch_memory_usage(model_name)
+        tries.append((c_guess, fits_guess, mem_guess, vram_guess))
+        if fits_guess:
+            low = c_guess
+            mem_low_val = vram_guess
+            best_metrics = metrics_guess
         else:
-            last_fail = None
-    else:
-        # Exponential search downward
-        last_fail = (start, mem_used, vram_used)
-        last_fail_metrics = metrics
-        ctx = max(start // 2, min_ctx)
-        while ctx >= min_ctx:
-            fits, metrics = fits_in_vram(model_name, ctx)
-            mem_used, vram_used = fetch_memory_usage(model_name)
-            tries.append((ctx, fits, mem_used, vram_used))
-            if fits:
-                last_fit = (ctx, mem_used, vram_used)
-                last_fit_metrics = metrics
-                break
-            elif ctx == min_ctx:
-                last_fit = None
-                last_fit_metrics = None
-                break
-            ctx = max(ctx // 2, min_ctx)
-    if last_fit is None or last_fit_metrics is None:
-        logger.info(f"{model_name} cannot fit in VRAM even at {min_ctx}.")
-        logger.info(f"Tried: {tries}")
-        logger.info(f"Total tries: {len(tries)}")
-        return 0, None
-    if last_fail is None or last_fail_metrics is None:
-        # Never failed, so max_ctx is the answer
-        return _log_and_return_max_fit(max_ctx, last_fit_metrics, tries)
-    # Step 2: Pure binary search between last fit and first fail
-    low_ctx = last_fit[0]
-    high_ctx = last_fail[0]
-    best_fit = low_ctx
-    best_metrics = last_fit_metrics
-    while high_ctx - low_ctx > 1:
-        mid_ctx = (low_ctx + high_ctx) // 2
-        logger.info(f"Binary search test at context size {mid_ctx}...")
-        fits, metrics = fits_in_vram(model_name, mid_ctx)
-        mem_used, vram_used = fetch_memory_usage(model_name)
-        tries.append((mid_ctx, fits, mem_used, vram_used))
-        if fits:
-            low_ctx = mid_ctx
-            best_fit = mid_ctx
-            best_metrics = metrics
-        else:
-            high_ctx = mid_ctx
-    logger.info(f"Highest context size fitting in VRAM for {model_name}: {best_fit}")
-    logger.info(f"Probe tries: {[(c, f) for c, f, _, _ in sorted(tries)]}")
-    logger.info(f"Total tries: {len(tries)}")
-    return best_fit, best_metrics
+            high = c_guess
+            mem_high_val = vram_guess
+    return _log_and_return_max_fit(low, best_metrics, tries)
 
 def probe_max_context(output_file, model_name=None):
     """
