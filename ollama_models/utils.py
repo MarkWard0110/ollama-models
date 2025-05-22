@@ -90,7 +90,7 @@ def try_model_call(model_name, context_size):
         "stream": False,
         "options": {
             "num_ctx": context_size,
-            "max_tokens": 64,
+            "num_predict": 512,
         },
         "messages": [
             {
