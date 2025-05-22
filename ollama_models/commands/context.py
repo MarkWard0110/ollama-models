@@ -64,7 +64,7 @@ def cmd_usage(args):
         output_file = args.output
         model_name = args.model if hasattr(args, 'model') else None
         
-        logger.info(f"Generating context usage report to {output_file}")
+        logger.info(f"Generating context usage")
         
         # Use the integrated context usage module
         usage_rows = generate_usage_report(output_file, model_name)
@@ -91,7 +91,7 @@ def cmd_probe(args):
         output_file = args.output
         model_name = args.model if hasattr(args, 'model') else None
         
-        logger.info(f"Probing maximum context sizes to {output_file}")
+        logger.info(f"Probing maximum context sizes")
         
         # Use the integrated context probe module
         fit_rows = probe_max_context(output_file, model_name)

@@ -13,7 +13,7 @@ CURRENT_DIR = os.getcwd()
 MODELS_JSON_FILENAME = "ollama_models.json"
 CONFIG_FILENAME = "selected_tags.conf"
 CONTEXT_USAGE_FILENAME = "context_usage.csv"
-MAX_CONTEXT_FILENAME = "max_context.csv"
+MAX_CONTEXT_FILENAME = "context_probe.csv"
 
 # Default file paths - now checking the current directory first
 DEFAULT_MODELS_JSON = os.environ.get(
@@ -38,7 +38,7 @@ DEFAULT_MAX_CONTEXT_CSV = os.environ.get(
 
 # API configuration
 DEFAULT_API_BASE = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
-API_TIMEOUT = int(os.environ.get("OLLAMA_API_TIMEOUT", "600"))  # 10 minutes default
+API_TIMEOUT = int(os.environ.get("OLLAMA_API_TIMEOUT", "1200")) 
 
 def get_file_path(filename, default_dir=DATA_DIR):
     """
