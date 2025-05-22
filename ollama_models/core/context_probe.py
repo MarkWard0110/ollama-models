@@ -52,12 +52,19 @@ def find_max_fit_in_vram(model_name, max_ctx):
     fits, metrics = fits_in_vram(model_name, start)
     mem_used, vram_used = fetch_memory_usage(model_name)
     tries.append((start, fits, mem_used, vram_used))
+    # Optimization: If start == max_ctx and it fits, return immediately
+    if fits and start == max_ctx:
+        last_fit = (start, mem_used, vram_used)
+        last_fit_metrics = metrics
+        return _log_and_return_max_fit(max_ctx, last_fit_metrics, tries)
     if fits:
         # Exponential search upward
         last_fit = (start, mem_used, vram_used)
         last_fit_metrics = metrics
         ctx = min(start * 2, max_ctx)
         while ctx <= max_ctx:
+            if ctx == start:
+                break  # Prevent redundant try
             fits, metrics = fits_in_vram(model_name, ctx)
             mem_used, vram_used = fetch_memory_usage(model_name)
             tries.append((ctx, fits, mem_used, vram_used))
@@ -98,10 +105,7 @@ def find_max_fit_in_vram(model_name, max_ctx):
         return 0, None
     if last_fail is None or last_fail_metrics is None:
         # Never failed, so max_ctx is the answer
-        logger.info(f"Never failed, max context size is {max_ctx}.")
-        logger.info(f"Tried: {tries}")
-        logger.info(f"Total tries: {len(tries)}")
-        return max_ctx, last_fit_metrics
+        return _log_and_return_max_fit(max_ctx, last_fit_metrics, tries)
     # Step 2: Pure binary search between last fit and first fail
     low_ctx = last_fit[0]
     high_ctx = last_fail[0]
@@ -223,3 +227,9 @@ def probe_max_context(output_file, model_name=None):
             logger.info(f"Progress saved.")
 
     return fit_rows
+
+def _log_and_return_max_fit(max_ctx, last_fit_metrics, tries):
+    logger.info(f"The model successfully fits the maximum reported context size in VRAM: {max_ctx}.")
+    logger.info(f"Tried: {tries}")
+    logger.info(f"Total tries: {len(tries)}")
+    return max_ctx, last_fit_metrics
