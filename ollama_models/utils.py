@@ -60,7 +60,7 @@ def fetch_max_context_size(model_name):
         logger.warning(f"Error fetching context size for {model_name}: {str(e)}")
         return 2048
 
-def try_model_call(model_name, context_size):
+def try_model_call(model_name, context_size, isLoad=False):
     """
     Test if a model can handle a given context size and return metrics.
     
@@ -91,14 +91,16 @@ def try_model_call(model_name, context_size):
         "options": {
             "num_ctx": context_size,
             "num_predict": 512,
-        },
-        "messages": [
+        }
+    }
+    if not isLoad:
+        payload_chat["messages"] = [
             {
                 "role": "user",
                 "content": "What is the capital of France?",
             }
         ]        
-    }
+
     try:
         logger.debug(f"Testing {model_name} with context size {context_size} via chat API")
         start = time.time()
@@ -151,7 +153,12 @@ def try_model_call(model_name, context_size):
     except requests.RequestException as e:
         logger.debug(f"Chat API test failed for {model_name} with context {context_size}: {str(e)}")
         # If chat fails, try embeddings
-        embed_payload = {"model": model_name, "input": "Test"}
+        embed_payload = {
+            "model": model_name
+            }
+        if not isLoad:
+            embed_payload["prompt"] = "test"
+
         try:
             logger.debug(f"Testing {model_name} with context size {context_size} via embed API")
             resp = requests.post(f"{API_BASE}/api/embed", json=embed_payload, timeout=API_TIMEOUT)

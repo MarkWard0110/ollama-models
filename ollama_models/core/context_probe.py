@@ -5,6 +5,7 @@ import os
 import csv
 import logging
 import pathlib
+import time
 from ollama_models.utils import (
     fetch_installed_models, fetch_max_context_size,
     try_model_call, fetch_memory_usage, format_size,
@@ -14,7 +15,7 @@ from ollama_models.config import API_TIMEOUT
 
 logger = logging.getLogger("ollama_models.core.context_probe")
 
-def fits_in_vram(model_name, context_size):
+def fits_in_vram(model_name, context_size, isLoad=True):
     """
     Check if a model fits in VRAM at a given context size and collect metrics.
     
@@ -25,7 +26,7 @@ def fits_in_vram(model_name, context_size):
     Returns:
         tuple: (fits: bool, metrics: dict)
     """
-    result = try_model_call(model_name, context_size)
+    result = try_model_call(model_name, context_size, isLoad=isLoad)
     if not result['success']:
         logger.info(f"Failed model call for {model_name} at context size {context_size}.")
         return False, result
@@ -45,17 +46,17 @@ def find_max_fit_in_vram(model_name, max_ctx, granularity=32):
     min_ctx = 2048
     # Special case: min_ctx == max_ctx
     if min_ctx == max_ctx:
-        fits, metrics = fits_in_vram(model_name, min_ctx)
+        fits, metrics = fits_in_vram(model_name, min_ctx, isLoad=True)
         mem, vram = fetch_memory_usage(model_name)
         tries.append((min_ctx, fits, mem, vram))
         return _log_and_return_max_fit(min_ctx if fits else 0, metrics if fits else None, tries)
     # Step 1: Find initial bracket
-    fits_low, metrics_low = fits_in_vram(model_name, min_ctx)
+    fits_low, metrics_low = fits_in_vram(model_name, min_ctx, isLoad=True)
     mem_low, vram_low = fetch_memory_usage(model_name)
     tries.append((min_ctx, fits_low, mem_low, vram_low))
     if not fits_low:
         return _log_and_return_max_fit(0, None, tries)
-    fits_high, metrics_high = fits_in_vram(model_name, max_ctx)
+    fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True)
     mem_high, vram_high = fetch_memory_usage(model_name)
     tries.append((max_ctx, fits_high, mem_high, vram_high))
     if fits_high:
@@ -80,7 +81,7 @@ def find_max_fit_in_vram(model_name, max_ctx, granularity=32):
                 if c_guess <= low or c_guess >= high:
                     c_guess = (low + high) // 2
         logger.info(f"Probing at context size {c_guess} (low={low}, high={high})...")
-        fits_guess, metrics_guess = fits_in_vram(model_name, c_guess)
+        fits_guess, metrics_guess = fits_in_vram(model_name, c_guess, isLoad=True)
         mem_guess, vram_guess = fetch_memory_usage(model_name)
         tries.append((c_guess, fits_guess, mem_guess, vram_guess))
         if fits_guess:
@@ -150,27 +151,27 @@ def probe_max_context(output_file, model_name=None):
         if name in fit_models and not model_name:
             logger.info(f"Skipping {name}: already has a max_context entry.")
             continue
-            
         logger.info(f"Processing model: {name}")
+        start_time = time.time()
         max_ctx = fetch_max_context_size(name)
         logger.info(f"Maximum reported context size: {max_ctx}")
-        
         best_fit, best_metrics = find_max_fit_in_vram(name, max_ctx)
+        elapsed = time.time() - start_time
+        elapsed_human = time.strftime('%H:%M:%S', time.gmtime(elapsed))
+        logger.info(f"Time taken to probe {name}: {elapsed:.2f} seconds ({elapsed_human})")
         if best_fit >= 2048:
+            best_metrics = try_model_call(model_name, best_fit, isLoad=False) # get metrics by using a chat request
             is_model_max = (best_fit == max_ctx)
             logger.info(f"Max context size fully in VRAM for {name} is {best_fit}")
-            
             # Fetch memory usage for the best-fit context size
             size, _ = fetch_memory_usage(name)
             size_hr = format_size(size)
-            
             # Update or add row for this model
             existing_row_index = -1
             for i, row in enumerate(fit_rows):
                 if row[0] == name:
                     existing_row_index = i
                     break
-                    
             row_data = [
                 name, best_fit, is_model_max,
                 size_hr,
@@ -184,7 +185,6 @@ def probe_max_context(output_file, model_name=None):
             else:
                 fit_rows.append(row_data)
                 fit_models.add(name)
-                
             # Save progress immediately after processing each model
             logger.info(f"Saving progress for {name}...")
             write_fit_data()
