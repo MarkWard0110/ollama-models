@@ -92,7 +92,7 @@ SKIP_LARGE_MODELS = False  # Set to True to skip LARGE and XLARGE models
 
 # Limit the total number of models to test
 # MAX_MODELS_TO_TEST = None  # Set to a number to limit total models tested
-MAX_MODELS_TO_TEST = 1
+MAX_MODELS_TO_TEST = 2
 
 # Maximum runtime (in minutes) - will attempt to estimate and skip models that would exceed this
 # Only applies when testing multiple models in sequence
@@ -230,6 +230,7 @@ def apply_advanced_filters(models):
     # Apply max models limit
     if MAX_MODELS_TO_TEST and len(filtered) > MAX_MODELS_TO_TEST:
         logger.info(f"Limiting to first {MAX_MODELS_TO_TEST} models")
+        random.shuffle(filtered)
         filtered = filtered[:MAX_MODELS_TO_TEST]
     
     # Apply runtime estimation-based filtering
