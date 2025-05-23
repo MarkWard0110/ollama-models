@@ -48,7 +48,7 @@ MODEL_FILTER = [
 
 # Advanced filter options
 FILTER_BY_SIZE = None     
-FILTER_BY_PARAMS = None  # Tuple[Optional[float], Optional[float]] or None
+FILTER_BY_PARAMS: Optional[Tuple[Optional[float], Optional[float]]] = None  # Tuple[Optional[float], Optional[float]] or None
 SKIP_LARGE_MODELS = False  
 MAX_MODELS_TO_TEST = 2
 MAX_RUNTIME_MINUTES = None
@@ -116,9 +116,8 @@ def apply_advanced_filters(models: List[Dict]) -> List[Dict]:
         logger.info(f"Applying size filter: {size_filter}")
         filtered = [m for m in filtered if estimate_model_size_category(m['name']) == size_filter]
         logger.info(f"After size filtering: {len(filtered)} models")
-    
-    # Apply parameter count-based filtering
-    if FILTER_BY_PARAMS is not None:
+      # Apply parameter count-based filtering
+    if FILTER_BY_PARAMS is not None and isinstance(FILTER_BY_PARAMS, (tuple, list)) and len(FILTER_BY_PARAMS) == 2:
         min_billions, max_billions = FILTER_BY_PARAMS
         min_params = min_billions * 1e9 if min_billions is not None else 0
         max_params = max_billions * 1e9 if max_billions is not None else float('inf')
@@ -305,11 +304,9 @@ def run_all_probes(models_to_test: List[Dict], algorithms: Optional[List[SearchA
             try:
                 result = find_max_fit_in_vram(model_name, max_ctx, algorithm)
                 collector.add_result(model_name, algorithm, result)
-                
-                # Brief progress update
+                  # Brief progress update
                 metrics = result.search_metrics
-                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
-                logger.info(f"  ✓ {result.max_context} tokens in {metrics.total_time:.1f}s ({efficiency:.0f} tok/s)")
+                logger.info(f"  ✓ {result.max_context} tokens in {metrics.total_time:.1f}s")
                 
             except Exception as e:
                 logger.error(f"  ✗ Error testing {algorithm.value} on {model_name}: {e}")
@@ -352,16 +349,15 @@ def analyze_algorithm_comparison(collector: ProbeDataCollector):
         results = collector.get_all_results_for_model(model_name)
         if not results:
             continue
-            
+        
         logger.info(f"\n--- Comparison for {model_name} ---")
-        logger.info(f"{'Algorithm':<20} | {'Tokens':<8} | {'Time':<8} | {'Tries':<6} | {'Efficiency':<12}")
-        logger.info("-" * 70)
+        logger.info(f"{'Algorithm':<20} | {'Tokens':<8} | {'Time':<8} | {'Tries':<6}")
+        logger.info("-" * 58)
         
         for algorithm, result in results.items():
             if result:
                 metrics = result.search_metrics
-                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
-                logger.info(f"{algorithm.value:<20} | {result.max_context:<8} | {metrics.total_time:<8.2f} | {metrics.total_tries:<6} | {efficiency:<12.0f}")
+                logger.info(f"{algorithm.value:<20} | {result.max_context:<8} | {metrics.total_time:<8.2f} | {metrics.total_tries:<6}")
         
         # Save detailed comparison report to organized directory
         safe_model_name = model_name.replace(':', '_')
@@ -405,11 +401,9 @@ def analyze_performance_comparison(collector: ProbeDataCollector):
     # Collect all performance metrics
     for model_name in collector.get_models():
         results = collector.get_all_results_for_model(model_name)
-        
         for algorithm, result in results.items():
             if result:
                 metrics = result.search_metrics
-                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                 
                 performance_data.append({
                     'model': model_name,
@@ -417,33 +411,29 @@ def analyze_performance_comparison(collector: ProbeDataCollector):
                     'max_context': result.max_context,
                     'search_time': metrics.total_time,
                     'total_tries': metrics.total_tries,
-                    'efficiency': efficiency,
                     'precision': metrics.precision_confidence
                 })
-    
-    # Performance summary
+      # Performance summary
     logger.info("\n--- Individual Results ---")
-    logger.info(f"{'Model':<25} | {'Algorithm':<15} | {'Tokens':<8} | {'Time':<8} | {'Tries':<6} | {'Efficiency':<12}")
-    logger.info("-" * 90)
+    logger.info(f"{'Model':<25} | {'Algorithm':<15} | {'Tokens':<8} | {'Time':<8} | {'Tries':<6}")
+    logger.info("-" * 75)
     
     for data in performance_data:
-        logger.info(f"{data['model']:<25} | {data['algorithm']:<15} | {data['max_context']:<8} | {data['search_time']:<8.2f} | {data['total_tries']:<6} | {data['efficiency']:<12.0f}")
-    
-    # Algorithm averages
+        logger.info(f"{data['model']:<25} | {data['algorithm']:<15} | {data['max_context']:<8} | {data['search_time']:<8.2f} | {data['total_tries']:<6}")
+      # Algorithm averages
     if performance_data:
         logger.info("\n--- Algorithm Performance Averages ---")
         algorithms = set(data['algorithm'] for data in performance_data)
         
-        logger.info(f"{'Algorithm':<15} | {'Avg Time':<10} | {'Avg Tries':<10} | {'Avg Efficiency':<15}")
-        logger.info("-" * 60)
+        logger.info(f"{'Algorithm':<15} | {'Avg Time':<10} | {'Avg Tries':<10}")
+        logger.info("-" * 45)
         
         for algorithm in algorithms:
             alg_data = [data for data in performance_data if data['algorithm'] == algorithm]
             avg_time = sum(data['search_time'] for data in alg_data) / len(alg_data)
             avg_tries = sum(data['total_tries'] for data in alg_data) / len(alg_data)
-            avg_efficiency = sum(data['efficiency'] for data in alg_data) / len(alg_data)
             
-            logger.info(f"{algorithm:<15} | {avg_time:<10.2f} | {avg_tries:<10.1f} | {avg_efficiency:<15.0f}")
+            logger.info(f"{algorithm:<15} | {avg_time:<10.2f} | {avg_tries:<10.1f}")
     
     # Save detailed performance report
     performance_path = collector.get_output_path('performance', 'detailed_performance_analysis.csv')
@@ -455,17 +445,16 @@ def analyze_performance_comparison(collector: ProbeDataCollector):
 def _save_comparison_report(model_name: str, results: Dict[SearchAlgorithm, ProbeResult], output_file: str):
     """Save detailed algorithm comparison report to CSV."""
     with open(output_file, 'w', newline='') as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f)        
         writer.writerow([
             'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
-            'Precision Confidence (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
+            'Precision Confidence (%)', 'Coarse Tries', 'Fine Tries',
             'Flat Memory Detections', 'Dynamic Granularity', 'Estimated Max Fit'
         ])
         
         for algorithm, result in results.items():
             if result:
                 metrics = result.search_metrics
-                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                 
                 writer.writerow([
                     algorithm.value,
@@ -473,7 +462,6 @@ def _save_comparison_report(model_name: str, results: Dict[SearchAlgorithm, Prob
                     f"{metrics.total_time:.2f}",
                     metrics.total_tries,
                     f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A",
-                    f"{efficiency:.0f}",
                     metrics.coarse_tries if metrics.coarse_tries else "N/A",
                     metrics.fine_tries if metrics.fine_tries else "N/A", 
                     metrics.flat_memory_detections if metrics.flat_memory_detections else "N/A",
@@ -503,7 +491,7 @@ def _save_summary_comparison_report(collector: ProbeDataCollector, output_file: 
         writer = csv.writer(f)
         writer.writerow([
             'Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
-            'Precision Confidence (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
+            'Precision Confidence (%)', 'Coarse Tries', 'Fine Tries',
             'Flat Memory Detections', 'Dynamic Granularity', 'Estimated Max Fit'
         ])
         
@@ -512,7 +500,6 @@ def _save_summary_comparison_report(collector: ProbeDataCollector, output_file: 
             for algorithm, result in results.items():
                 if result:
                     metrics = result.search_metrics
-                    efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                     
                     writer.writerow([
                         model_name,
@@ -521,7 +508,6 @@ def _save_summary_comparison_report(collector: ProbeDataCollector, output_file: 
                         f"{metrics.total_time:.2f}",
                         metrics.total_tries,
                         f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A",
-                        f"{efficiency:.0f}",
                         metrics.coarse_tries if metrics.coarse_tries else "N/A",
                         metrics.fine_tries if metrics.fine_tries else "N/A", 
                         metrics.flat_memory_detections if metrics.flat_memory_detections else "N/A",
@@ -555,7 +541,7 @@ def _save_detailed_performance_report(performance_data: List[Dict], output_file:
         writer = csv.writer(f)
         writer.writerow([
             'Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
-            'Efficiency (tokens/sec)', 'Precision Confidence (%)'
+            'Precision Confidence (%)'
         ])
         
         for data in performance_data:
@@ -565,7 +551,6 @@ def _save_detailed_performance_report(performance_data: List[Dict], output_file:
                 data['max_context'],
                 f"{data['search_time']:.2f}",
                 data['total_tries'],
-                f"{data['efficiency']:.0f}",
                 f"{data['precision']:.2f}%" if data['precision'] is not None else "N/A"
             ])
 
@@ -573,27 +558,25 @@ def _save_algorithm_selection_report(model_name: str, results: Dict[SearchAlgori
     """Save algorithm selection report for a specific model to CSV."""
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 'Efficiency (tokens/sec)'])
+        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries'])
         
         for algorithm, result in results.items():
             if result:
                 metrics = result.search_metrics
-                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                 
                 writer.writerow([
                     model_name,
                     algorithm.value,
                     result.max_context,
                     f"{metrics.total_time:.2f}",
-                    metrics.total_tries,
-                    f"{efficiency:.0f}"
+                    metrics.total_tries
                 ])
 
 def _save_consolidated_algorithm_selection(collector: ProbeDataCollector, output_file: str):
     """Save consolidated algorithm selection summary across all models."""
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 'Efficiency (tokens/sec)', 'Recommended'])
+        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 'Recommended'])
         
         for model_name in collector.get_models():
             results = collector.get_all_results_for_model(model_name)
@@ -610,7 +593,6 @@ def _save_consolidated_algorithm_selection(collector: ProbeDataCollector, output
             for algorithm, result in results.items():
                 if result:
                     metrics = result.search_metrics
-                    efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                     is_recommended = "Yes" if algorithm.value == best_algorithm else "No"
                     
                     writer.writerow([
@@ -619,7 +601,6 @@ def _save_consolidated_algorithm_selection(collector: ProbeDataCollector, output
                         result.max_context,
                         f"{metrics.total_time:.2f}",
                         metrics.total_tries,
-                        f"{efficiency:.0f}",
                         is_recommended
                     ])
 
@@ -701,8 +682,7 @@ def main():
         
         logger.info("\n" + "="*60)
         performance_data = analyze_performance_comparison(collector)
-        
-        # Final summary
+          # Final summary
         logger.info("\n" + "="*60)
         logger.info("=== All Tests Completed Successfully ===")
         
@@ -713,20 +693,20 @@ def main():
             total_tests = len(performance_data)
             logger.info(f"Total algorithm tests: {total_tests}")
             
-            # Find best performing algorithm overall
+            # Find best performing algorithm overall (fastest average time)
             algorithms = set(data['algorithm'] for data in performance_data)
             best_algorithm = None
-            best_efficiency = 0
+            best_avg_time = float('inf')
             
             for algorithm in algorithms:
                 alg_data = [data for data in performance_data if data['algorithm'] == algorithm]
-                avg_efficiency = sum(data['efficiency'] for data in alg_data) / len(alg_data)
-                if avg_efficiency > best_efficiency:
-                    best_efficiency = avg_efficiency
+                avg_time = sum(data['search_time'] for data in alg_data) / len(alg_data)
+                if avg_time < best_avg_time:
+                    best_avg_time = avg_time
                     best_algorithm = algorithm
             
             if best_algorithm:
-                logger.info(f"Best performing algorithm: {best_algorithm} ({best_efficiency:.0f} tokens/sec average)")
+                logger.info(f"Best performing algorithm: {best_algorithm} ({best_avg_time:.2f}s average time)")
         
         logger.info("="*60)
         
