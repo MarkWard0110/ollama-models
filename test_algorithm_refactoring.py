@@ -9,6 +9,7 @@ Configuration:
 """
 import logging
 import random
+import csv
 from typing import Dict, List, Tuple, Optional, Any
 from ollama_models.core.context_probe import (
     SearchAlgorithm, 
@@ -516,16 +517,14 @@ def create_algorithm_comparison_report(model_name: str, max_ctx: int, output_fil
         output_file: Path to save the comparison report
     """
     results = compare_algorithms(model_name, max_ctx)
-    
-    # Create detailed comparison report
+      # Create detailed comparison report
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow([
             'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
-            'Precision (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
+            'Precision Confidence (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
             'Flat Memory Detections', 'Dynamic Granularity', 'Estimated Max Fit'
         ])
-        
         for algorithm, result in results.items():
             metrics = result.search_metrics
             efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
@@ -535,7 +534,7 @@ def create_algorithm_comparison_report(model_name: str, max_ctx: int, output_fil
                 result.max_context,
                 f"{metrics.total_time:.2f}",
                 metrics.total_tries,
-                f"{metrics.precision_percentage:.2f}" if metrics.precision_percentage else "N/A",
+                f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A",
                 f"{efficiency:.0f}",
                 metrics.coarse_tries if metrics.coarse_tries else "N/A",
                 metrics.fine_tries if metrics.fine_tries else "N/A", 
@@ -566,7 +565,7 @@ def test_performance_comparison():
             # Compare algorithms
             results = compare_algorithms(model_name, max_ctx)
             
-            for algorithm, result in results.items():
+            for algorithm, result in results.items():                
                 metrics = result.search_metrics
                 efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                 
@@ -577,7 +576,7 @@ def test_performance_comparison():
                     'search_time': metrics.total_time,
                     'total_tries': metrics.total_tries,
                     'efficiency': efficiency,
-                    'precision': metrics.precision_percentage
+                    'precision': metrics.precision_confidence
                 })
                 
         except Exception as e:

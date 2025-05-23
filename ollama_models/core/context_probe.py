@@ -33,7 +33,7 @@ class SearchMetrics:
     fine_tries: int = 0
     flat_memory_detections: int = 0
     dynamic_granularity: Optional[int] = None
-    precision_percentage: Optional[float] = None
+    precision_confidence: Optional[float] = None  # Higher is better (100% = perfect confidence)
     estimated_max_fit: Optional[int] = None
     
 @dataclass
@@ -143,12 +143,12 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
     fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True)
     mem_high, vram_high = fetch_memory_usage(model_name)
     tries.append((max_ctx, fits_high, mem_high, vram_high))
-    
-    if fits_high:
+    if fits_high:        
         search_metrics = SearchMetrics(
             algorithm=SearchAlgorithm.PURE_BINARY,
             total_tries=2,
-            total_time=0.0
+            total_time=0.0,
+            precision_confidence=100.0  # 100% confidence when exact max context fits
         )
         return ProbeResult(
             max_context=max_ctx,
@@ -173,13 +173,15 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
             low = mid
             best_metrics = metrics_mid
         else:
-            high = mid
+            high = mid    # Calculate precision metrics
+    error_percentage = granularity / low * 100 if low > 0 else 0
+    confidence = 100.0 - error_percentage  # Higher is better
     
     search_metrics = SearchMetrics(
         algorithm=SearchAlgorithm.PURE_BINARY,
         total_tries=len(tries),
         total_time=0.0,
-        precision_percentage=granularity / low * 100 if low > 0 else 0
+        precision_confidence=confidence  # Higher is better (100% = perfect)
     )
     
     return ProbeResult(
@@ -221,7 +223,7 @@ def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional
     fits_low, metrics_low = fits_in_vram(model_name, min_ctx, isLoad=True)
     mem_low, vram_low = fetch_memory_usage(model_name)
     tries.append((min_ctx, fits_low, mem_low, vram_low))
-    
+
     if not fits_low:
         search_metrics = SearchMetrics(
             algorithm=SearchAlgorithm.ADAPTIVE_BINARY,
@@ -238,12 +240,12 @@ def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional
     fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True)
     mem_high, vram_high = fetch_memory_usage(model_name)
     tries.append((max_ctx, fits_high, mem_high, vram_high))
-    
-    if fits_high:
+    if fits_high:        
         search_metrics = SearchMetrics(
             algorithm=SearchAlgorithm.ADAPTIVE_BINARY,
             total_tries=2,
-            total_time=0.0
+            total_time=0.0,
+            precision_confidence=100.0  # 100% confidence when exact max context fits
         )
         return ProbeResult(
             max_context=max_ctx,
@@ -334,7 +336,9 @@ def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional
         else:
             high = mid
     
-    fine_tries = len(tries) - fine_tries_start
+    fine_tries = len(tries) - fine_tries_start    # Calculate precision metrics
+    error_percentage = granularity / estimated_max_fit * 100 if estimated_max_fit > 0 else 0
+    confidence = 100.0 - error_percentage  # Higher is better
     
     search_metrics = SearchMetrics(
         algorithm=SearchAlgorithm.ADAPTIVE_BINARY,
@@ -344,7 +348,7 @@ def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional
         fine_tries=fine_tries,
         flat_memory_detections=flat_memory_count,
         dynamic_granularity=granularity,
-        precision_percentage=granularity / estimated_max_fit * 100 if estimated_max_fit > 0 else 0,
+        precision_confidence=confidence,
         estimated_max_fit=estimated_max_fit
     )
     
@@ -374,9 +378,8 @@ def _log_search_results(model_name: str, result: ProbeResult) -> None:
             logger.info(f"Dynamic granularity: {metrics.dynamic_granularity} tokens")
         if metrics.estimated_max_fit:
             logger.info(f"Estimated max fit: {metrics.estimated_max_fit}")
-    
-    if metrics.precision_percentage:
-        logger.info(f"Search precision: {metrics.precision_percentage:.2f}%")
+        if metrics.precision_confidence:
+            logger.info(f"Search confidence: {metrics.precision_confidence:.2f}%")
     
     logger.info(f"Tried contexts: {[t[0] for t in result.tries]}")
     logger.info("=== End Search Results ===")
@@ -429,14 +432,15 @@ def probe_max_context(output_file: str, model_name: Optional[str] = None,
         
     # Function to write current fit data to file
     def write_fit_data():
-        sorted_rows = sorted(fit_rows, key=lambda row: row[0])
+        sorted_rows = sorted(fit_rows, key=lambda row: row[0])        
         with open(version_output_file, 'w', newline="") as fit_file:
             fit_writer = csv.writer(fit_file)
             fit_writer.writerow([
                 "model_name", "max_context_size", "is_model_max",
                 "memory_allocated", "tokens_per_second", "decode_tokens_per_second", 
                 "total_duration", "total_duration_human", "search_algorithm",
-                "search_time", "total_tries", "search_precision"            ])
+                "search_time", "total_tries", "precision_confidence"
+            ])
             for row in sorted_rows:
                 fit_writer.writerow(row)
 
@@ -491,10 +495,9 @@ def probe_max_context(output_file: str, model_name: Optional[str] = None,
                 metrics_to_use.get('decode_tokens_per_second') if metrics_to_use else None,
                 metrics_to_use.get('total_duration') if metrics_to_use else None,
                 metrics_to_use.get('total_duration_human') if metrics_to_use else None,
-                result.search_metrics.algorithm.value,
-                f"{result.search_metrics.total_time:.2f}",
+                result.search_metrics.algorithm.value,                f"{result.search_metrics.total_time:.2f}",
                 result.search_metrics.total_tries,
-                f"{result.search_metrics.precision_percentage:.2f}%" if result.search_metrics.precision_percentage else None
+                f"{result.search_metrics.precision_confidence:.2f}%"
             ]
             
             if existing_row_index >= 0:
