@@ -60,6 +60,45 @@ def fetch_max_context_size(model_name):
         logger.warning(f"Error fetching context size for {model_name}: {str(e)}")
         return 2048
 
+def fetch_parameter_count(model_name):
+    """
+    Fetch the parameter count (size) for a given model.
+    
+    Args:
+        model_name (str): Name of the model
+        
+    Returns:
+        tuple: (parameter_count, formatted_size)
+            parameter_count (int): Raw parameter count in millions
+            formatted_size (str): Human-readable parameter count (e.g., "1.5B" or "734M")
+    """
+    logger = logging.getLogger("ollama_models.utils")
+    try:
+        resp = requests.post(f"{API_BASE}/api/show", json={"model": model_name}, timeout=API_TIMEOUT)
+        resp.raise_for_status()
+        info = resp.json().get("model_info", {})
+        
+        # Check for general.parameter_count key
+        param_count = info.get("general.parameter_count", 0)
+        
+        if param_count:
+            # Format parameter count in human-readable format
+            if param_count >= 1e9:  # Billions
+                formatted = f"{param_count/1e9:.1f}B"
+            else:  # Millions
+                formatted = f"{param_count/1e6:.1f}M"
+                
+            logger.debug(f"Parameter count for {model_name}: {formatted} ({param_count})")
+            return param_count, formatted
+            
+        # Fallback to estimating from model name if parameter count not available
+        logger.debug(f"No parameter_count property found for {model_name}. Estimating from name.")
+        raise ValueError("Parameter count not found in model info")
+    
+    except requests.RequestException as e:
+        logger.warning(f"Error fetching parameter count for {model_name}: {str(e)}")
+        raise ValueError("Parameter count not found in model info")
+
 def try_model_call(model_name, context_size, isLoad=False):
     """
     Test if a model can handle a given context size and return metrics.
