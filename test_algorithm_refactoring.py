@@ -10,6 +10,10 @@ Configuration:
 import logging
 import random
 import csv
+import os
+import argparse
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 from ollama_models.core.context_probe import (
     SearchAlgorithm, 
@@ -27,76 +31,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Model filter configuration
-# Add model names to this list to test only specific models
-# Leave empty to test all installed models
-# 
-# QUICK START EXAMPLES:
-# To test only small models:   MODEL_FILTER = ["llama3.2:1b-instruct-fp16", "gemma3:1b-it-fp16"]
-# To test only one model:      MODEL_FILTER = ["gemma3:27b-it-q8_0"]
-# To test flat memory models:  MODEL_FILTER = ["gemma3:27b-it-q8_0", "gemma3:27b-it-q4_K_M"]
-# To test all models:          MODEL_FILTER = []
-#
-# Run list_available_models() first to see what models you have installed
 MODEL_FILTER = [
     # === QUICK TEST MODELS (Small, fast) ===
-    # "llama3.2:1b-instruct-fp16",  # ~1GB VRAM
-    # "gemma3:1b-it-fp16",          # ~1GB VRAM
+    "llama3.2:1b-instruct-fp16",  # ~1GB VRAM
+    "qwen3:0.6b-fp16",            # ~1GB VRAM
     # "qwen2.5-coder:1.5b-instruct-fp16", # ~1.5GB VRAM
-    # "qwen3:0.6b-fp16",            # <1GB VRAM
     
     # === MEDIUM MODELS (Moderate testing) ===
     # "llama3.2:3b-instruct-fp16",  # ~2-3GB VRAM
     # "gemma3:4b-it-fp16",          # ~3GB VRAM
-    # "qwen3:4b-fp16",              # ~3GB VRAM
-    # "phi4-mini:3.8b-fp16",        # ~3GB VRAM
     
     # === LARGE MODELS (Thorough testing) ===
     # "llama3.1:8b-instruct-fp16",  # ~5GB VRAM
     # "qwen3:8b-fp16",              # ~5GB VRAM
-    # "phi4:14b-fp16",              # ~8GB VRAM
-    # "qwen3:14b-fp16",             # ~8GB VRAM
-    
-    # === VERY LARGE MODELS (Extensive VRAM required) ===
-    # "llama3.3:70b-instruct-q3_K_M", # ~25GB+ VRAM
-    # "qwen3:32b-q4_K_M",             # ~16GB+ VRAM
-    
-    # === PROBLEMATIC MODELS (Known for flat memory curves) ===
-    # "gemma3:27b-it-q8_0",           # The model mentioned in the original issue
-    # "gemma3:27b-it-q4_K_M",         # Quantized version
-    
-    # === QUANTIZATION COMPARISON (Same model, different quantization) ===
-    # "llama3.1:8b-instruct-fp16",    # Full precision
-    # "llama3.1:8b-instruct-q8_0",    # 8-bit quantization
-    # "llama3.1:8b-instruct-q4_K_M",  # 4-bit quantization
-    # "llama3.1:8b-instruct-q2_K",    # 2-bit quantization
 ]
 
 # Advanced filter options
-# These options provide alternative ways to filter models
-# They are applied after the MODEL_FILTER
-
-# Filter by model size category
-# Options: "SMALL", "MEDIUM", "LARGE", "XLARGE", None (no size filtering)
 FILTER_BY_SIZE = None     
-
-# Filter by parameter count range
-# Format: (min_billions, max_billions)
-# Examples: (0, 3)  - Models <3B parameters
-#           (3, 8)  - Models 3-8B parameters
-#           (8, 20) - Models 8-20B parameters
-#           (20, None) - Models >20B parameters
-FILTER_BY_PARAMS = None  # Set to a tuple (min_billions, max_billions) or None
-
-# Skip models that would require significant VRAM
-SKIP_LARGE_MODELS = False  # Set to True to skip LARGE and XLARGE models
-
-# Limit the total number of models to test
-# MAX_MODELS_TO_TEST = None  # Set to a number to limit total models tested
+FILTER_BY_PARAMS = None  # Tuple[Optional[float], Optional[float]] or None
+SKIP_LARGE_MODELS = False  
 MAX_MODELS_TO_TEST = 2
-
-# Maximum runtime (in minutes) - will attempt to estimate and skip models that would exceed this
-# Only applies when testing multiple models in sequence
-MAX_RUNTIME_MINUTES = None  # Set to a number of minutes to limit total runtime
+MAX_RUNTIME_MINUTES = None
 
 def list_available_models():
     """List all available models for reference with parameter counts and size estimates."""
@@ -123,55 +78,14 @@ def list_available_models():
                 
         logger.info("="*80)
         logger.info(f"Total models found: {len(models)}")
-        
-        # Show size distribution
-        size_counts = {}
-        param_totals = {"SMALL": 0, "MEDIUM": 0, "LARGE": 0, "XLARGE": 0, "UNKNOWN": 0}
-        param_counts = {"SMALL": 0, "MEDIUM": 0, "LARGE": 0, "XLARGE": 0, "UNKNOWN": 0}
-        
-        for model in models:
-            name = model['name']
-            category = estimate_model_size_category(name)
-            size_counts[category] = size_counts.get(category, 0) + 1
-            
-            # Accumulate parameter counts for average calculation
-            try:
-                param_count, _ = fetch_parameter_count(name)
-                param_totals[category] += int(param_count)
-                param_counts[category] += 1
-            except Exception:
-                pass
-                
-        # Calculate average sizes and display stats
-        logger.info("\nSize distribution:")
-        logger.info(f"{'Category':10} {'Count':7} {'Avg Parameters':15}")
-        logger.info("-"*40)
-        
-        for size, count in sorted(size_counts.items()):
-            avg_params = "N/A"
-            if param_counts[size] > 0:
-                avg = param_totals[size] / param_counts[size]
-                if avg >= 1e9:
-                    avg_params = f"{avg/1e9:.1f}B"
-                else:
-                    avg_params = f"{avg/1e6:.1f}M"
-                    
-            logger.info(f"{size:10} {count:7} {avg_params:15}")
             
     else:
         logger.info("No models found")
     return models
 
-def estimate_model_size_category(model_name):
+def estimate_model_size_category(model_name: str) -> str:
     """
     Estimate model size category based on parameter count.
-    Uses the fetch_parameter_count function to get accurate parameter size.
-    
-    Args:
-        model_name (str): Name of the model
-        
-    Returns:
-        str: Size category - "SMALL", "MEDIUM", "LARGE", "XLARGE"
     """
     from ollama_models.utils import fetch_parameter_count
     
@@ -190,13 +104,15 @@ def estimate_model_size_category(model_name):
             
     except Exception as e:
         logger.warning(f"Error determining parameter count for {model_name}: {e}")
-       
-def apply_advanced_filters(models):
+        return "UNKNOWN"
+
+def apply_advanced_filters(models: List[Dict]) -> List[Dict]:
     """Apply advanced filtering options to model list."""
     filtered = models[:]
-      # Apply size-based filtering
+    
+    # Apply size-based filtering
     if FILTER_BY_SIZE:
-        size_filter = FILTER_BY_SIZE  # Already uppercase in the config
+        size_filter = FILTER_BY_SIZE
         logger.info(f"Applying size filter: {size_filter}")
         filtered = [m for m in filtered if estimate_model_size_category(m['name']) == size_filter]
         logger.info(f"After size filtering: {len(filtered)} models")
@@ -209,7 +125,7 @@ def apply_advanced_filters(models):
         
         logger.info(f"Applying parameter filter: {min_billions}B to {max_billions if max_billions else 'unlimited'}B")
         
-        def is_in_param_range(model_name):
+        def is_in_param_range(model_name: str) -> bool:
             from ollama_models.utils import fetch_parameter_count
             try:
                 param_count, _ = fetch_parameter_count(model_name)
@@ -233,46 +149,7 @@ def apply_advanced_filters(models):
         random.shuffle(filtered)
         filtered = filtered[:MAX_MODELS_TO_TEST]
     
-    # Apply runtime estimation-based filtering
-    if MAX_RUNTIME_MINUTES and len(filtered) > 1:
-        logger.info(f"Maximum runtime limit set to {MAX_RUNTIME_MINUTES} minutes")
-        # We'll sort models by estimated size to test small models first
-        filtered.sort(key=lambda m: _get_size_score(estimate_model_size_category(m['name'])))
-        
-        # Rough estimate: small=2min, medium=5min, large=10min, xlarge=20min per model
-        def estimate_model_runtime_minutes(model):
-            category = estimate_model_size_category(model['name'])
-            if category == 'SMALL': return 2
-            if category == 'MEDIUM': return 5
-            if category == 'LARGE': return 10
-            if category == 'XLARGE': return 20
-            return 5  # Default for unknown
-        
-        # Only keep models within estimated runtime
-        total_estimated_runtime = 0
-        filtered_by_runtime = []
-        
-        for model in filtered:
-            model_runtime = estimate_model_runtime_minutes(model)
-            if total_estimated_runtime + model_runtime <= MAX_RUNTIME_MINUTES:
-                filtered_by_runtime.append(model)
-                total_estimated_runtime += model_runtime
-            else:
-                logger.info(f"Skipping {model['name']} as it would exceed runtime limit")
-                
-        logger.info(f"Estimated total runtime: {total_estimated_runtime} minutes")
-        logger.info(f"After runtime filtering: {len(filtered_by_runtime)} models")
-        filtered = filtered_by_runtime
-    
     return filtered
-
-def _get_size_score(size_category):
-    """Helper to get a numeric score for size categories for sorting."""
-    if size_category == 'SMALL': return 1
-    if size_category == 'MEDIUM': return 2
-    if size_category == 'LARGE': return 3
-    if size_category == 'XLARGE': return 4
-    return 2  # Default for UNKNOWN
 
 def get_filtered_models():
     """Get list of models to test based on all filter configurations."""
@@ -329,244 +206,208 @@ def get_filtered_models():
     
     return models_to_test
 
-def test_algorithm_selection():
-    """Test individual algorithm selection and execution on filtered models."""
-    logger.info("=== Testing Algorithm Selection ===")
+class ProbeDataCollector:
+    """Collects probe results for multiple analysis modes."""
     
-    # Get filtered test models
-    models = get_filtered_models()
-    if not models:
-        return []
-    
-    results = []
-    
-    for i, model_info in enumerate(models, 1):
-        test_model = model_info["name"]
-        max_ctx = fetch_max_context_size(test_model)
+    def __init__(self, output_base_dir: Optional[str] = None):
+        self.model_results: Dict[str, Dict[SearchAlgorithm, ProbeResult]] = {}
+        self.tested_models: List[str] = []
         
-        logger.info(f"\n[{i}/{len(models)}] Testing model: {test_model}")
-        logger.info(f"Max context: {max_ctx}")
+        # Set up organized output directory structure
+        if output_base_dir is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_base_dir = f"test_results_{timestamp}"
         
-        try:
-            # Test Pure Binary Search
-            logger.info(f"--- Testing Pure Binary Search on {test_model} ---")
-            result_pure = find_max_fit_in_vram(
-                test_model, 
-                max_ctx, 
-                SearchAlgorithm.PURE_BINARY,
-                granularity=64  # Fixed granularity for pure binary
-            )
+        self.output_base_dir = Path(output_base_dir)
+        self.setup_output_directories()
+        
+    def setup_output_directories(self):
+        """Create organized directory structure for outputs."""
+        directories = [
+            self.output_base_dir,
+            self.output_base_dir / "algorithm_comparisons",
+            self.output_base_dir / "probe_outputs", 
+            self.output_base_dir / "performance_reports",
+            self.output_base_dir / "summaries"
+        ]
+        
+        for directory in directories:
+            directory.mkdir(parents=True, exist_ok=True)
             
-            # Test Adaptive Binary Search  
-            logger.info(f"--- Testing Adaptive Binary Search on {test_model} ---")
-            result_adaptive = find_max_fit_in_vram(
-                test_model,
-                max_ctx,
-                SearchAlgorithm.ADAPTIVE_BINARY
-                # granularity will be calculated dynamically
-            )
-            
-            # Store results
-            model_results = {
-                'model': test_model,
-                'max_ctx': max_ctx,
-                'pure_binary': result_pure,
-                'adaptive_binary': result_adaptive
-            }
-            results.append(model_results)
-            
-            # Log individual results
-            logger.info(f"--- Results for {test_model} ---")
-            logger.info(f"Pure Binary: {result_pure.max_context} tokens in {result_pure.search_metrics.total_time:.2f}s ({result_pure.search_metrics.total_tries} tries)")
-            logger.info(f"Adaptive Binary: {result_adaptive.max_context} tokens in {result_adaptive.search_metrics.total_time:.2f}s ({result_adaptive.search_metrics.total_tries} tries)")
-            
-        except Exception as e:
-            logger.error(f"Error testing {test_model}: {e}")
-            continue
-    
-    # Summary of all results
-    logger.info("\n=== Algorithm Selection Summary ===")
-    for result in results:
-        logger.info(f"{result['model']}:")
-        logger.info(f"  Pure Binary: {result['pure_binary'].max_context} tokens, {result['pure_binary'].search_metrics.total_time:.1f}s")
-        logger.info(f"  Adaptive Binary: {result['adaptive_binary'].max_context} tokens, {result['adaptive_binary'].search_metrics.total_time:.1f}s")
-    
-    return results
+        logger.info(f"Output directories created in: {self.output_base_dir}")
+        
+    def get_output_path(self, analysis_type: str, filename: str) -> Path:
+        """Get the full path for an output file based on analysis type."""
+        type_mapping = {
+            'comparison': 'algorithm_comparisons',
+            'probe': 'probe_outputs',
+            'performance': 'performance_reports',
+            'summary': 'summaries'
+        }
+        
+        subdirectory = type_mapping.get(analysis_type, '')
+        if subdirectory:
+            return self.output_base_dir / subdirectory / filename
+        else:
+            return self.output_base_dir / filename
+        
+    def add_result(self, model_name: str, algorithm: SearchAlgorithm, result: ProbeResult):
+        """Add a probe result to the collection."""
+        if model_name not in self.model_results:
+            self.model_results[model_name] = {}
+            self.tested_models.append(model_name)
+        self.model_results[model_name][algorithm] = result
+        
+    def get_models(self) -> List[str]:
+        """Get list of tested models."""
+        return self.tested_models.copy()
+        
+    def get_result(self, model_name: str, algorithm: SearchAlgorithm) -> Optional[ProbeResult]:
+        """Get a specific probe result."""
+        return self.model_results.get(model_name, {}).get(algorithm)
+        
+    def get_all_results_for_model(self, model_name: str) -> Dict[SearchAlgorithm, ProbeResult]:
+        """Get all algorithm results for a specific model."""
+        return self.model_results.get(model_name, {}).copy()
 
-def test_algorithm_comparison():
-    """Test the algorithm comparison framework on filtered models."""
-    logger.info("\n=== Testing Algorithm Comparison Framework ===")
-    
-    # Get filtered test models
-    models = get_filtered_models()
-    if not models:
-        return []
-    
-    all_results = []
-    
-    for i, model_info in enumerate(models, 1):
-        test_model = model_info["name"]
-        max_ctx = fetch_max_context_size(test_model)
-        
-        logger.info(f"\n[{i}/{len(models)}] Comparing algorithms for: {test_model}")
-        
-        try:
-            # Run comparison
-            results = compare_algorithms(test_model, max_ctx)
-            all_results.append((test_model, results))
-            
-            # Create detailed comparison report for each model
-            report_file = f"algorithm_comparison_{test_model.replace(':', '_')}.csv"
-            create_algorithm_comparison_report(test_model, max_ctx, report_file)
-            logger.info(f"Detailed comparison report saved to {report_file}")
-            
-        except Exception as e:
-            logger.error(f"Error comparing algorithms for {test_model}: {e}")
-            continue
-    
-    # Create combined summary report
-    if all_results:
-        logger.info("\n=== Algorithm Comparison Summary ===")
-        for test_model, results in all_results:
-            logger.info(f"\n{test_model}:")
-            for algorithm, result in results.items():
-                metrics = result.search_metrics
-                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
-                logger.info(f"  {algorithm.value:15} | {result.max_context:6} tokens | {metrics.total_time:6.2f}s | {metrics.total_tries:3} tries | {efficiency:7.0f} tokens/sec")
-    
-    return all_results
-
-def test_probe_with_different_algorithms():
-    """Test the main probe function with different algorithms on filtered models."""
-    logger.info("\n=== Testing Probe Function with Different Algorithms ===")
-    
-    models = get_filtered_models()
-    if not models:
-        return
-    
-    for i, model_info in enumerate(models, 1):
-        test_model = model_info["name"]
-        safe_model_name = test_model.replace(':', '_')
-        
-        logger.info(f"\n[{i}/{len(models)}] Testing probe functions for: {test_model}")
-        
-        try:
-            # Test with Pure Binary Search
-            logger.info(f"--- Probing {test_model} with Pure Binary Search ---")
-            probe_max_context(
-                output_file=f"test_pure_binary_{safe_model_name}_results.csv",
-                model_name=test_model,
-                algorithm=SearchAlgorithm.PURE_BINARY
-            )
-            
-            # Test with Adaptive Binary Search
-            logger.info(f"--- Probing {test_model} with Adaptive Binary Search ---")
-            probe_max_context(
-                output_file=f"test_adaptive_binary_{safe_model_name}_results.csv", 
-                model_name=test_model,
-                algorithm=SearchAlgorithm.ADAPTIVE_BINARY
-            )
-            
-            logger.info(f"Probe results for {test_model} saved to CSV files")
-            
-        except Exception as e:
-            logger.error(f"Error probing {test_model}: {e}")
-            continue
-
-def compare_algorithms(model_name: str, max_ctx: int, algorithms: Optional[List[SearchAlgorithm]] = None) -> Dict[SearchAlgorithm, ProbeResult]:
+def run_all_probes(models_to_test: List[Dict], algorithms: Optional[List[SearchAlgorithm]] = None) -> ProbeDataCollector:
     """
-    Compare multiple search algorithms on the same model.
+    Run probes for all models and algorithms, collecting results for later analysis.
     
     Args:
-        model_name: Name of the model to test
-        max_ctx: Maximum context size reported by the model
-        algorithms: List of algorithms to compare. If None, tests all available algorithms.
+        models_to_test: List of model info dictionaries
+        algorithms: List of algorithms to test (defaults to all available)
         
     Returns:
-        Dictionary mapping algorithms to their results
+        ProbeDataCollector containing all results
     """
     if algorithms is None:
         algorithms = [SearchAlgorithm.PURE_BINARY, SearchAlgorithm.ADAPTIVE_BINARY]
     
-    logger.info(f"=== Algorithm Comparison for {model_name} ===")
-    results = {}
+    collector = ProbeDataCollector()
     
-    for algorithm in algorithms:
-        logger.info(f"Testing {algorithm.value}...")
-        result = find_max_fit_in_vram(model_name, max_ctx, algorithm)
-        results[algorithm] = result
-        
-        # Brief summary for comparison
-        logger.info(f"{algorithm.value}: {result.max_context} tokens in {result.search_metrics.total_time:.1f}s ({result.search_metrics.total_tries} tries)")
+    logger.info("=== Running All Probes ===")
+    logger.info(f"Testing {len(models_to_test)} models with {len(algorithms)} algorithms")
     
-    # Comparison summary
-    logger.info("=== Comparison Summary ===")
-    for algorithm, result in results.items():
-        efficiency = result.max_context / result.search_metrics.total_time if result.search_metrics.total_time > 0 else 0
-        logger.info(f"{algorithm.value}: {result.max_context} tokens, {result.search_metrics.total_time:.1f}s, {result.search_metrics.total_tries} tries, {efficiency:.0f} tokens/sec")
+    total_tests = len(models_to_test) * len(algorithms)
+    current_test = 0
     
-    return results
-
-
-def create_algorithm_comparison_report(model_name: str, max_ctx: int, output_file: str) -> None:
-    """
-    Create a detailed comparison report of all available search algorithms.
-    
-    Args:
-        model_name: Name of the model to test
-        max_ctx: Maximum context size reported by the model  
-        output_file: Path to save the comparison report
-    """
-    results = compare_algorithms(model_name, max_ctx)
-      # Create detailed comparison report
-    with open(output_file, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
-            'Precision Confidence (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
-            'Flat Memory Detections', 'Dynamic Granularity', 'Estimated Max Fit'
-        ])
-        for algorithm, result in results.items():
-            metrics = result.search_metrics
-            efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
-            
-            writer.writerow([
-                algorithm.value,
-                result.max_context,
-                f"{metrics.total_time:.2f}",
-                metrics.total_tries,
-                f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A",
-                f"{efficiency:.0f}",
-                metrics.coarse_tries if metrics.coarse_tries else "N/A",
-                metrics.fine_tries if metrics.fine_tries else "N/A", 
-                metrics.flat_memory_detections if metrics.flat_memory_detections else "N/A",
-                metrics.dynamic_granularity if metrics.dynamic_granularity else "N/A",
-                metrics.estimated_max_fit if metrics.estimated_max_fit else "N/A"
-            ])
-    
-    logger.info(f"Algorithm comparison report saved to {output_file}")
-
-def test_performance_comparison():
-    """Compare the performance characteristics of different algorithms across filtered models."""
-    logger.info("\n=== Performance Comparison Test ===")
-    
-    models = get_filtered_models()
-    if not models:
-        return []
-    
-    performance_data = []
-    
-    for i, model_info in enumerate(models, 1):
+    for model_info in models_to_test:
         model_name = model_info["name"]
         max_ctx = fetch_max_context_size(model_name)
         
-        logger.info(f"\n[{i}/{len(models)}] Testing performance on {model_name}")
+        logger.info(f"\nTesting model: {model_name} (max_ctx: {max_ctx})")
         
-        try:
-            # Compare algorithms
-            results = compare_algorithms(model_name, max_ctx)
+        for algorithm in algorithms:
+            current_test += 1
+            logger.info(f"[{current_test}/{total_tests}] Running {algorithm.value} on {model_name}")
             
-            for algorithm, result in results.items():                
+            try:
+                result = find_max_fit_in_vram(model_name, max_ctx, algorithm)
+                collector.add_result(model_name, algorithm, result)
+                
+                # Brief progress update
+                metrics = result.search_metrics
+                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
+                logger.info(f"  ✓ {result.max_context} tokens in {metrics.total_time:.1f}s ({efficiency:.0f} tok/s)")
+                
+            except Exception as e:
+                logger.error(f"  ✗ Error testing {algorithm.value} on {model_name}: {e}")
+                continue
+    
+    logger.info(f"\nProbe collection complete: {len(collector.tested_models)} models tested")
+    return collector
+
+def analyze_algorithm_selection(collector: ProbeDataCollector):
+    """Analyze results from the perspective of algorithm selection."""
+    logger.info("\n=== Algorithm Selection Analysis ===")
+    
+    for model_name in collector.get_models():
+        results = collector.get_all_results_for_model(model_name)
+        
+        logger.info(f"\n{model_name}:")
+        for algorithm, result in results.items():
+            if result:
+                metrics = result.search_metrics
+                logger.info(f"  {algorithm.value}: {result.max_context} tokens in {metrics.total_time:.2f}s ({metrics.total_tries} tries)")
+                
+        # Save individual algorithm selection report for each model
+        safe_model_name = model_name.replace(':', '_')
+        selection_filename = f"algorithm_selection_{safe_model_name}.csv"
+        selection_path = collector.get_output_path('summary', selection_filename)
+        _save_algorithm_selection_report(model_name, results, str(selection_path))
+        logger.info(f"Algorithm selection report for {model_name} saved to {selection_path}")
+        
+    # Create a consolidated algorithm selection summary
+    consolidated_selection_path = collector.get_output_path('summary', 'algorithm_selection_summary.csv')
+    _save_consolidated_algorithm_selection(collector, str(consolidated_selection_path))
+    logger.info(f"Consolidated algorithm selection summary saved to {consolidated_selection_path}")
+
+def analyze_algorithm_comparison(collector: ProbeDataCollector):
+    """Analyze results from the perspective of algorithm comparison."""
+    logger.info("\n=== Algorithm Comparison Analysis ===")
+    
+    # Create comparison reports for each model
+    for model_name in collector.get_models():
+        results = collector.get_all_results_for_model(model_name)
+        if not results:
+            continue
+            
+        logger.info(f"\n--- Comparison for {model_name} ---")
+        logger.info(f"{'Algorithm':<20} | {'Tokens':<8} | {'Time':<8} | {'Tries':<6} | {'Efficiency':<12}")
+        logger.info("-" * 70)
+        
+        for algorithm, result in results.items():
+            if result:
+                metrics = result.search_metrics
+                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
+                logger.info(f"{algorithm.value:<20} | {result.max_context:<8} | {metrics.total_time:<8.2f} | {metrics.total_tries:<6} | {efficiency:<12.0f}")
+        
+        # Save detailed comparison report to organized directory
+        safe_model_name = model_name.replace(':', '_')
+        report_filename = f"algorithm_comparison_{safe_model_name}.csv"
+        report_path = collector.get_output_path('comparison', report_filename)
+        _save_comparison_report(model_name, results, str(report_path))
+        logger.info(f"Detailed report saved to {report_path}")
+        
+    # Create a summary comparison report across all models
+    summary_path = collector.get_output_path('summary', 'algorithm_comparison_summary.csv')
+    _save_summary_comparison_report(collector, str(summary_path))
+    logger.info(f"Summary comparison report saved to {summary_path}")
+
+def analyze_probe_outputs(collector: ProbeDataCollector):
+    """Analyze results from the perspective of probe function outputs."""
+    logger.info("\n=== Probe Output Analysis ===")
+    
+    for model_name in collector.get_models():
+        results = collector.get_all_results_for_model(model_name)
+        safe_model_name = model_name.replace(':', '_')
+        
+        # Generate CSV outputs similar to the original probe function
+        for algorithm, result in results.items():
+            if result:
+                output_filename = f"test_{algorithm.value.lower().replace(' ', '_')}_{safe_model_name}_results.csv"
+                output_path = collector.get_output_path('probe', output_filename)
+                _save_probe_output(model_name, algorithm, result, str(output_path))
+                logger.info(f"Probe output for {model_name} ({algorithm.value}) saved to {output_path}")
+                
+    # Create a consolidated probe results file
+    consolidated_path = collector.get_output_path('summary', 'consolidated_probe_results.csv')
+    _save_consolidated_probe_results(collector, str(consolidated_path))
+    logger.info(f"Consolidated probe results saved to {consolidated_path}")
+
+def analyze_performance_comparison(collector: ProbeDataCollector):
+    """Analyze results from the perspective of performance comparison."""
+    logger.info("\n=== Performance Comparison Analysis ===")
+    
+    performance_data = []
+    
+    # Collect all performance metrics
+    for model_name in collector.get_models():
+        results = collector.get_all_results_for_model(model_name)
+        
+        for algorithm, result in results.items():
+            if result:
                 metrics = result.search_metrics
                 efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
                 
@@ -579,31 +420,210 @@ def test_performance_comparison():
                     'efficiency': efficiency,
                     'precision': metrics.precision_confidence
                 })
-                
-        except Exception as e:
-            logger.error(f"Error testing performance for {model_name}: {e}")
-            continue
     
-    # Log performance summary
-    logger.info("\n=== Performance Summary ===")
-    logger.info("Model | Algorithm | Tokens | Time | Tries | Efficiency")
-    logger.info("-" * 70)
+    # Performance summary
+    logger.info("\n--- Individual Results ---")
+    logger.info(f"{'Model':<25} | {'Algorithm':<15} | {'Tokens':<8} | {'Time':<8} | {'Tries':<6} | {'Efficiency':<12}")
+    logger.info("-" * 90)
+    
     for data in performance_data:
-        logger.info(f"{data['model']:20} | {data['algorithm']:15} | {data['max_context']:6} | {data['search_time']:6.2f}s | {data['total_tries']:5} | {data['efficiency']:7.0f} tok/s")
+        logger.info(f"{data['model']:<25} | {data['algorithm']:<15} | {data['max_context']:<8} | {data['search_time']:<8.2f} | {data['total_tries']:<6} | {data['efficiency']:<12.0f}")
     
-    # Calculate algorithm averages
+    # Algorithm averages
     if performance_data:
-        logger.info("\n=== Algorithm Performance Averages ===")
+        logger.info("\n--- Algorithm Performance Averages ---")
         algorithms = set(data['algorithm'] for data in performance_data)
+        
+        logger.info(f"{'Algorithm':<15} | {'Avg Time':<10} | {'Avg Tries':<10} | {'Avg Efficiency':<15}")
+        logger.info("-" * 60)
+        
         for algorithm in algorithms:
             alg_data = [data for data in performance_data if data['algorithm'] == algorithm]
             avg_time = sum(data['search_time'] for data in alg_data) / len(alg_data)
             avg_tries = sum(data['total_tries'] for data in alg_data) / len(alg_data)
             avg_efficiency = sum(data['efficiency'] for data in alg_data) / len(alg_data)
             
-            logger.info(f"{algorithm:15} | Avg Time: {avg_time:6.2f}s | Avg Tries: {avg_tries:5.1f} | Avg Efficiency: {avg_efficiency:7.0f} tok/s")
+            logger.info(f"{algorithm:<15} | {avg_time:<10.2f} | {avg_tries:<10.1f} | {avg_efficiency:<15.0f}")
+    
+    # Save detailed performance report
+    performance_path = collector.get_output_path('performance', 'detailed_performance_analysis.csv')
+    _save_detailed_performance_report(performance_data, str(performance_path))
+    logger.info(f"Detailed performance report saved to {performance_path}")
     
     return performance_data
+
+def _save_comparison_report(model_name: str, results: Dict[SearchAlgorithm, ProbeResult], output_file: str):
+    """Save detailed algorithm comparison report to CSV."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
+            'Precision Confidence (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
+            'Flat Memory Detections', 'Dynamic Granularity', 'Estimated Max Fit'
+        ])
+        
+        for algorithm, result in results.items():
+            if result:
+                metrics = result.search_metrics
+                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
+                
+                writer.writerow([
+                    algorithm.value,
+                    result.max_context,
+                    f"{metrics.total_time:.2f}",
+                    metrics.total_tries,
+                    f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A",
+                    f"{efficiency:.0f}",
+                    metrics.coarse_tries if metrics.coarse_tries else "N/A",
+                    metrics.fine_tries if metrics.fine_tries else "N/A", 
+                    metrics.flat_memory_detections if metrics.flat_memory_detections else "N/A",
+                    metrics.dynamic_granularity if metrics.dynamic_granularity else "N/A",
+                    metrics.estimated_max_fit if metrics.estimated_max_fit else "N/A"
+                ])
+
+def _save_probe_output(model_name: str, algorithm: SearchAlgorithm, result: ProbeResult, output_file: str):
+    """Save probe output in the format expected by the original probe function."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time', 'Total Tries', 'Precision'])
+        
+        metrics = result.search_metrics
+        writer.writerow([
+            model_name,
+            algorithm.value,
+            result.max_context,
+            f"{metrics.total_time:.2f}",
+            metrics.total_tries,
+            f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A"
+        ])
+
+def _save_summary_comparison_report(collector: ProbeDataCollector, output_file: str):
+    """Save a summary comparison report across all models."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            'Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
+            'Precision Confidence (%)', 'Tokens/Second', 'Coarse Tries', 'Fine Tries',
+            'Flat Memory Detections', 'Dynamic Granularity', 'Estimated Max Fit'
+        ])
+        
+        for model_name in collector.get_models():
+            results = collector.get_all_results_for_model(model_name)
+            for algorithm, result in results.items():
+                if result:
+                    metrics = result.search_metrics
+                    efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
+                    
+                    writer.writerow([
+                        model_name,
+                        algorithm.value,
+                        result.max_context,
+                        f"{metrics.total_time:.2f}",
+                        metrics.total_tries,
+                        f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A",
+                        f"{efficiency:.0f}",
+                        metrics.coarse_tries if metrics.coarse_tries else "N/A",
+                        metrics.fine_tries if metrics.fine_tries else "N/A", 
+                        metrics.flat_memory_detections if metrics.flat_memory_detections else "N/A",
+                        metrics.dynamic_granularity if metrics.dynamic_granularity else "N/A",
+                        metrics.estimated_max_fit if metrics.estimated_max_fit else "N/A"
+                    ])
+
+def _save_consolidated_probe_results(collector: ProbeDataCollector, output_file: str):
+    """Save consolidated probe results across all models and algorithms."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time', 'Total Tries', 'Precision'])
+        
+        for model_name in collector.get_models():
+            results = collector.get_all_results_for_model(model_name)
+            for algorithm, result in results.items():
+                if result:
+                    metrics = result.search_metrics
+                    writer.writerow([
+                        model_name,
+                        algorithm.value,
+                        result.max_context,
+                        f"{metrics.total_time:.2f}",
+                        metrics.total_tries,
+                        f"{metrics.precision_confidence:.2f}%" if metrics.precision_confidence is not None else "N/A"
+                    ])
+
+def _save_detailed_performance_report(performance_data: List[Dict], output_file: str):
+    """Save detailed performance analysis to CSV."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            'Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 
+            'Efficiency (tokens/sec)', 'Precision Confidence (%)'
+        ])
+        
+        for data in performance_data:
+            writer.writerow([
+                data['model'],
+                data['algorithm'],
+                data['max_context'],
+                f"{data['search_time']:.2f}",
+                data['total_tries'],
+                f"{data['efficiency']:.0f}",
+                f"{data['precision']:.2f}%" if data['precision'] is not None else "N/A"
+            ])
+
+def _save_algorithm_selection_report(model_name: str, results: Dict[SearchAlgorithm, ProbeResult], output_file: str):
+    """Save algorithm selection report for a specific model to CSV."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 'Efficiency (tokens/sec)'])
+        
+        for algorithm, result in results.items():
+            if result:
+                metrics = result.search_metrics
+                efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
+                
+                writer.writerow([
+                    model_name,
+                    algorithm.value,
+                    result.max_context,
+                    f"{metrics.total_time:.2f}",
+                    metrics.total_tries,
+                    f"{efficiency:.0f}"
+                ])
+
+def _save_consolidated_algorithm_selection(collector: ProbeDataCollector, output_file: str):
+    """Save consolidated algorithm selection summary across all models."""
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Model', 'Algorithm', 'Max Context', 'Search Time (s)', 'Total Tries', 'Efficiency (tokens/sec)', 'Recommended'])
+        
+        for model_name in collector.get_models():
+            results = collector.get_all_results_for_model(model_name)
+            
+            # Determine which algorithm is recommended (fastest for this model)
+            best_algorithm = None
+            best_time = float('inf')
+            
+            for algorithm, result in results.items():
+                if result and result.search_metrics.total_time < best_time:
+                    best_time = result.search_metrics.total_time
+                    best_algorithm = algorithm.value
+            
+            for algorithm, result in results.items():
+                if result:
+                    metrics = result.search_metrics
+                    efficiency = result.max_context / metrics.total_time if metrics.total_time > 0 else 0
+                    is_recommended = "Yes" if algorithm.value == best_algorithm else "No"
+                    
+                    writer.writerow([
+                        model_name,
+                        algorithm.value,
+                        result.max_context,
+                        f"{metrics.total_time:.2f}",
+                        metrics.total_tries,
+                        f"{efficiency:.0f}",
+                        is_recommended
+                    ])
+
+# ...existing code...
 
 def show_test_configuration():
     """Display a summary of the test configuration."""
@@ -657,27 +677,36 @@ def main():
         
         if not all_models:
             logger.error("No models found. Please install models first.")
-            return        # Test 1: Individual algorithm selection
-        logger.info("\n" + "="*60)
-        algorithm_results = test_algorithm_selection()
+            return False
+            
+        # Get filtered models to test
+        models_to_test = get_filtered_models()
+        if not models_to_test:
+            logger.error("No models match the filter criteria.")
+            return False
         
-        # Test 2: Algorithm comparison framework
+        # Run all probes once
         logger.info("\n" + "="*60)
-        comparison_results = test_algorithm_comparison()
+        collector = run_all_probes(models_to_test)
         
-        # Test 3: Probe function with different algorithms
+        # Analyze results in different ways
         logger.info("\n" + "="*60)
-        test_probe_with_different_algorithms()
+        analyze_algorithm_selection(collector)
         
-        # Test 4: Performance comparison
         logger.info("\n" + "="*60)
-        performance_data = test_performance_comparison()
+        analyze_algorithm_comparison(collector)
+        
+        logger.info("\n" + "="*60)
+        analyze_probe_outputs(collector)
+        
+        logger.info("\n" + "="*60)
+        performance_data = analyze_performance_comparison(collector)
         
         # Final summary
         logger.info("\n" + "="*60)
         logger.info("=== All Tests Completed Successfully ===")
         
-        models_tested = len(algorithm_results) if algorithm_results else 0
+        models_tested = len(collector.get_models())
         logger.info(f"Models tested: {models_tested}")
         
         if performance_data:
@@ -709,14 +738,15 @@ def main():
     return True
 
 if __name__ == "__main__":
-    import argparse
     import sys
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Test algorithm refactoring with multiple search algorithms")
     parser.add_argument("--list-models", action="store_true", help="Only list available models and exit")
     parser.add_argument("--only", choices=["selection", "comparison", "probe", "performance"], 
-                        help="Run only a specific test")
+                        help="Run only a specific analysis")
+    parser.add_argument("--exclude", choices=["selection", "comparison", "probe", "performance"], 
+                        action="append", help="Exclude specific analyses")
     
     args = parser.parse_args()
     
@@ -725,26 +755,49 @@ if __name__ == "__main__":
         list_available_models()
         sys.exit(0)
     
-    # Run specific test or full suite
+    # Run specific analysis or full suite
     try:
+        show_test_configuration()
+        all_models = list_available_models()
+        
+        if not all_models:
+            logger.error("No models found. Please install models first.")
+            sys.exit(1)
+            
+        models_to_test = get_filtered_models()
+        if not models_to_test:
+            logger.error("No models match the filter criteria.")
+            sys.exit(1)
+        
+        # Run probes once
+        collector = run_all_probes(models_to_test)
+        
+        # Determine which analyses to run
+        excluded = set(args.exclude or [])
+        
         if args.only:
-            show_test_configuration()
-            all_models = list_available_models()
-            
-            if args.only == "selection":
-                test_algorithm_selection()
-            elif args.only == "comparison":
-                test_algorithm_comparison()
-            elif args.only == "probe":
-                test_probe_with_different_algorithms()
-            elif args.only == "performance":
-                test_performance_comparison()
-            
-            logger.info("Single test completed successfully")
+            # Run only the specified analysis
+            if args.only == "selection" and "selection" not in excluded:
+                analyze_algorithm_selection(collector)
+            elif args.only == "comparison" and "comparison" not in excluded:
+                analyze_algorithm_comparison(collector)
+            elif args.only == "probe" and "probe" not in excluded:
+                analyze_probe_outputs(collector)
+            elif args.only == "performance" and "performance" not in excluded:
+                analyze_performance_comparison(collector)
         else:
-            # Run the full test suite
-            success = main()
-            sys.exit(0 if success else 1)
+            # Run all analyses except excluded ones
+            if "selection" not in excluded:
+                analyze_algorithm_selection(collector)
+            if "comparison" not in excluded:
+                analyze_algorithm_comparison(collector)
+            if "probe" not in excluded:
+                analyze_probe_outputs(collector)
+            if "performance" not in excluded:
+                analyze_performance_comparison(collector)
+        
+        logger.info("Analysis completed successfully")
+        sys.exit(0)
             
     except KeyboardInterrupt:
         logger.info("\n\nTest interrupted by user. Exiting gracefully.")

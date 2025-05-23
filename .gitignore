@@ -8,7 +8,7 @@ max_context_*.csv
 context_probe.csv
 context_probe_*.csv
 ollama_models.json.*
-
+test_results_*/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
