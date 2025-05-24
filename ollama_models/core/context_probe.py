@@ -25,6 +25,8 @@ class SearchAlgorithm(Enum):
     PURE_BINARY_MAX_FIRST_G32 = "pure_binary_max_first_g32"
     PURE_BINARY_MAX_FIRST_G01 = "pure_binary_max_first_g01"
     ADAPTIVE_BINARY = "adaptive_binary"
+    ADAPTIVE_BINARY_MAX_FIRST_G32 = "adaptive_binary_max_first_g32"
+    ADAPTIVE_BINARY_MAX_FIRST_G01 = "adaptive_binary_max_first_g01"
 
 @dataclass
 class SearchMetrics:
@@ -93,6 +95,10 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
         result = _pure_binary_search_max_first(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01)
     elif algorithm == SearchAlgorithm.ADAPTIVE_BINARY:
         result = _adaptive_binary_search(model_name, max_ctx)
+    elif algorithm == SearchAlgorithm.ADAPTIVE_BINARY_MAX_FIRST_G32:
+        result = _adaptive_binary_search_max_first(model_name, max_ctx, 32, SearchAlgorithm.ADAPTIVE_BINARY_MAX_FIRST_G32)
+    elif algorithm == SearchAlgorithm.ADAPTIVE_BINARY_MAX_FIRST_G01:
+        result = _adaptive_binary_search_max_first(model_name, max_ctx, 1, SearchAlgorithm.ADAPTIVE_BINARY_MAX_FIRST_G01)
     else:
         raise ValueError(f"Unknown search algorithm: {algorithm}")
     
@@ -436,6 +442,160 @@ def _adaptive_binary_search(model_name: str, max_ctx: int) -> ProbeResult:
         fine_tries=fine_tries,
         flat_memory_detections=flat_memory_count,
         dynamic_granularity=granularity,
+        precision_confidence=confidence,
+        estimated_max_fit=estimated_max_fit
+    )
+    
+    return ProbeResult(
+        max_context=low,
+        model_metrics=best_metrics,
+        search_metrics=search_metrics,
+        tries=tries
+    )
+
+def _adaptive_binary_search_max_first(model_name: str, max_ctx: int, fixed_granularity: int, algorithm: SearchAlgorithm) -> ProbeResult:
+    """
+    Adaptive binary search that checks max context first and uses a fixed granularity.
+    """
+    logger.info(f"Finding max context size for {model_name} using adaptive binary search (max first, granularity={fixed_granularity})...")
+    tries = []
+    min_ctx = 2048
+    
+    # Special case: min_ctx == max_ctx
+    if min_ctx == max_ctx:
+        fits, metrics = fits_in_vram(model_name, min_ctx, isLoad=True)
+        mem, vram = fetch_memory_usage(model_name)
+        tries.append((min_ctx, fits, mem, vram))
+        
+        search_metrics = SearchMetrics(
+            algorithm=algorithm,
+            total_tries=1,
+            total_time=0.0,
+            precision_confidence=100.0
+        )
+        return ProbeResult(
+            max_context=min_ctx if fits else 0,
+            model_metrics=metrics if fits else None,
+            search_metrics=search_metrics,
+            tries=tries
+        )
+
+    # Step 1: Initial bounds (Max first)
+    fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True)
+    mem_high, vram_high = fetch_memory_usage(model_name)
+    tries.append((max_ctx, fits_high, mem_high, vram_high))
+
+    if fits_high:
+        search_metrics = SearchMetrics(
+            algorithm=algorithm,
+            total_tries=1,
+            total_time=0.0,
+            precision_confidence=100.0
+        )
+        return ProbeResult(
+            max_context=max_ctx,
+            model_metrics=metrics_high,
+            search_metrics=search_metrics,
+            tries=tries
+        )
+
+    fits_low, metrics_low = fits_in_vram(model_name, min_ctx, isLoad=True)
+    mem_low, vram_low = fetch_memory_usage(model_name)
+    tries.append((min_ctx, fits_low, mem_low, vram_low))
+
+    if not fits_low:
+        search_metrics = SearchMetrics(
+            algorithm=algorithm,
+            total_tries=2,
+            total_time=0.0
+        )
+        return ProbeResult(
+            max_context=0,
+            model_metrics=None,
+            search_metrics=search_metrics,
+            tries=tries
+        )
+        
+    # Step 2: Coarse binary search to find approximate fitting range
+    low, high = min_ctx, max_ctx
+    best_metrics = metrics_low
+    consecutive_fits = 0
+    flat_memory_count = 0
+    coarse_tries_start = len(tries)
+    
+    coarse_granularity = 1024 
+    
+    while high - low > coarse_granularity:
+        mid = (low + high) // 2
+        
+        logger.info(f"Coarse probing (max first) at {mid} (low={low}, high={high}, gap={high-low})...")
+        fits_mid, metrics_mid = fits_in_vram(model_name, mid, isLoad=True)
+        mem_mid, vram_mid = fetch_memory_usage(model_name)
+        tries.append((mid, fits_mid, mem_mid, vram_mid))
+        
+        if fits_mid:
+            low = mid
+            best_metrics = metrics_mid
+            consecutive_fits += 1
+            
+            if consecutive_fits >= 2 and len(tries) >= 2:
+                prev_vram = tries[-2][3]
+                if prev_vram > 0 and abs(vram_mid - prev_vram) / prev_vram < 0.02: # 2% VRAM growth threshold
+                    flat_memory_count += 1
+                    logger.info(f"Flat memory detected ({abs(vram_mid - prev_vram) / prev_vram * 100:.2f}% growth), count: {flat_memory_count}")
+                    if flat_memory_count >= 3: # If flat memory detected 3 times
+                        remaining_gap = high - low
+                        jump_size = min(remaining_gap // 2, max_ctx // 4) 
+                        if jump_size > coarse_granularity * 2:
+                            logger.info(f"Flat memory curve detected, jumping by {jump_size} to find boundary faster")
+                            low = min(low + jump_size, high - coarse_granularity) 
+                            consecutive_fits = 0 
+                            flat_memory_count = 0
+                else:
+                    flat_memory_count = 0 
+        else:
+            high = mid
+            consecutive_fits = 0
+            flat_memory_count = 0
+            
+    coarse_tries = len(tries) - coarse_tries_start
+    
+    # Step 3: Determine granularity for fine search
+    estimated_max_fit = low 
+    granularity_to_use = fixed_granularity # Use the passed fixed_granularity
+
+    logger.info(f"Using fixed granularity for fine search: {granularity_to_use} tokens")
+
+    # Step 4: Fine-grained binary search
+    fine_tries_start = len(tries)
+    
+    while high - low > granularity_to_use:
+        mid = (low + high) // 2
+        
+        logger.info(f"Fine probing (max first) at {mid} (low={low}, high={high}, gap={high-low})...")
+        fits_mid, metrics_mid = fits_in_vram(model_name, mid, isLoad=True)
+        mem_mid, vram_mid = fetch_memory_usage(model_name)
+        tries.append((mid, fits_mid, mem_mid, vram_mid))
+        
+        if fits_mid:
+            low = mid
+            best_metrics = metrics_mid
+        else:
+            high = mid
+            
+    fine_tries = len(tries) - fine_tries_start
+    
+    error_percentage = granularity_to_use / estimated_max_fit * 100 if estimated_max_fit > 0 else 0
+    confidence = 100.0 - error_percentage
+    
+    search_metrics = SearchMetrics(
+        algorithm=algorithm,
+        total_tries=len(tries),
+        total_time=0.0, # Will be set by the caller
+        coarse_tries=coarse_tries,
+        fine_tries=fine_tries,
+        flat_memory_detections=flat_memory_count, 
+        dynamic_granularity=granularity_to_use, # Using fixed_granularity as dynamic_granularity for logging
         precision_confidence=confidence,
         estimated_max_fit=estimated_max_fit
     )

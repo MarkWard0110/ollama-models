@@ -10,7 +10,7 @@ Configuration:
 import logging
 import random
 import csv
-import os
+import sys
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -31,17 +31,19 @@ logger = logging.getLogger(__name__)
 
 # Model filter configuration
 MODEL_FILTER = [
+    "mistral-small:24b-instruct-2501-q4_K_M",
+    "gemma3:12b-it-fp1"
     # === QUICK TEST MODELS (Small, fast) ===
-    # "llama3.2:1b-instruct-fp16",  # ~1GB VRAM
-    # "qwen3:0.6b-fp16",            # ~1GB VRAM
-    # "qwen2.5-coder:1.5b-instruct-fp16", # ~1.5GB VRAM
+    "llama3.2:1b-instruct-fp16",  # ~1GB VRAM
+    "qwen3:0.6b-fp16",            # ~1GB VRAM
+    "qwen2.5-coder:1.5b-instruct-fp16", # ~1.5GB VRAM
     
     # === MEDIUM MODELS (Moderate testing) ===
     # "llama3.2:3b-instruct-fp16",  # ~2-3GB VRAM
     # "gemma3:4b-it-fp16",          # ~3GB VRAM
     
     # === LARGE MODELS (Thorough testing) ===
-    # "llama3.1:8b-instruct-fp16",  # ~5GB VRAM
+     "llama3.1:8b-instruct-fp16",  # ~5GB VRAM
     # "qwen3:8b-fp16",              # ~5GB VRAM
 ]
 
@@ -280,7 +282,15 @@ def run_all_probes(models_to_test: List[Dict], algorithms: Optional[List[SearchA
         ProbeDataCollector containing all results
     """
     if algorithms is None:
-        algorithms = [SearchAlgorithm.PURE_BINARY_MIN_FIRST_G32, SearchAlgorithm.PURE_BINARY_MIN_FIRST_G01, SearchAlgorithm.ADAPTIVE_BINARY, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G32, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01]
+        algorithms = [
+            # SearchAlgorithm.PURE_BINARY_MIN_FIRST_G32, 
+            # SearchAlgorithm.PURE_BINARY_MIN_FIRST_G01, 
+            # SearchAlgorithm.ADAPTIVE_BINARY, 
+            # SearchAlgorithm.PURE_BINARY_MAX_FIRST_G32, 
+            # SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01,
+            SearchAlgorithm.ADAPTIVE_BINARY_MAX_FIRST_G32,
+            SearchAlgorithm.ADAPTIVE_BINARY_MAX_FIRST_G01
+        ]
     
     collector = ProbeDataCollector()
     
