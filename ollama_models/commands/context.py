@@ -94,7 +94,7 @@ def cmd_probe(args):
         logger.info(f"Probing maximum context sizes")
         
         # Use the integrated context probe module
-        fit_rows = probe_max_context(output_file, SearchAlgorithm.PURE_BINARY_G01, model_name)
+        fit_rows = probe_max_context(output_file, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01, model_name)
         
         logger.info(f"Successfully probed maximum context sizes with {len(fit_rows)} entries")
         return 0

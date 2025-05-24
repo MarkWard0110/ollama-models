@@ -20,8 +20,10 @@ logger = logging.getLogger("ollama_models.core.context_probe")
 
 class SearchAlgorithm(Enum):
     """Available search algorithms for context probing."""
-    PURE_BINARY_G32 = "pure_binary_g32"
-    PURE_BINARY_G01 = "pure_binary_g01"
+    PURE_BINARY_MIN_FIRST_G32 = "pure_binary_min_first_g32"
+    PURE_BINARY_MIN_FIRST_G01 = "pure_binary_min_first_g01"
+    PURE_BINARY_MAX_FIRST_G32 = "pure_binary_max_first_g32"
+    PURE_BINARY_MAX_FIRST_G01 = "pure_binary_max_first_g01"
     ADAPTIVE_BINARY = "adaptive_binary"
 
 @dataclass
@@ -81,10 +83,14 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
     """
     start_time = time.time()
     
-    if algorithm == SearchAlgorithm.PURE_BINARY_G32:
-        result = _pure_binary_search(model_name, max_ctx, 32, SearchAlgorithm.PURE_BINARY_G32)
-    elif algorithm == SearchAlgorithm.PURE_BINARY_G01:
-        result = _pure_binary_search(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_G01)
+    if algorithm == SearchAlgorithm.PURE_BINARY_MIN_FIRST_G32:
+        result = _pure_binary_search_min_first(model_name, max_ctx, 32, SearchAlgorithm.PURE_BINARY_MIN_FIRST_G32)
+    elif algorithm == SearchAlgorithm.PURE_BINARY_MIN_FIRST_G01:
+        result = _pure_binary_search_min_first(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_MIN_FIRST_G01)
+    elif algorithm == SearchAlgorithm.PURE_BINARY_MAX_FIRST_G32:
+        result = _pure_binary_search_max_first(model_name, max_ctx, 32, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G32)
+    elif algorithm == SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01:
+        result = _pure_binary_search_max_first(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01)
     elif algorithm == SearchAlgorithm.ADAPTIVE_BINARY:
         result = _adaptive_binary_search(model_name, max_ctx)
     else:
@@ -96,12 +102,90 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
     _log_search_results(model_name, result)
     return result
 
-def _pure_binary_search(model_name: str, max_ctx: int, granularity: int, algorithm: SearchAlgorithm) -> ProbeResult:
+def _pure_binary_search_max_first(model_name: str, max_ctx: int, granularity: int, algorithm: SearchAlgorithm) -> ProbeResult:
+    """
+    Pure binary search implementation that checks max context first.
+    """
+    logger.info(f"Finding max context size for {model_name} using binary search max first (granularity={granularity})...")
+    tries = []
+    min_ctx = 2048
+     
+    # Initial bounds testing
+     
+    fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True)
+    mem_high, vram_high = fetch_memory_usage(model_name)
+    tries.append((max_ctx, fits_high, mem_high, vram_high))
+    if fits_high:        
+        search_metrics = SearchMetrics(
+            algorithm=algorithm,
+            total_tries=1,
+            total_time=0.0,
+            precision_confidence=100.0  # 100% confidence when exact max context fits
+        )
+        return ProbeResult(
+            max_context=max_ctx,
+            model_metrics=metrics_high,
+            search_metrics=search_metrics,
+            tries=tries
+        )
+    
+    fits_low, metrics_low = fits_in_vram(model_name, min_ctx, isLoad=True)
+    mem_low, vram_low = fetch_memory_usage(model_name)
+    tries.append((min_ctx, fits_low, mem_low, vram_low))
+    
+    if not fits_low:
+        search_metrics = SearchMetrics(
+            algorithm=algorithm,
+            total_tries=2,
+            total_time=0.0
+        )
+        return ProbeResult(
+            max_context=0,
+            model_metrics=None,
+            search_metrics=search_metrics,
+            tries=tries
+        )
+       
+    # Pure binary search
+    low, high = min_ctx, max_ctx
+    best_metrics = metrics_low
+    
+    while high - low > granularity:
+        mid = (low + high) // 2
+        
+        logger.info(f"Binary search max first at {mid} (low={low}, high={high}, gap={high-low})...")
+        fits_mid, metrics_mid = fits_in_vram(model_name, mid, isLoad=True)
+        mem_mid, vram_mid = fetch_memory_usage(model_name)
+        tries.append((mid, fits_mid, mem_mid, vram_mid))
+        
+        if fits_mid:
+            low = mid
+            best_metrics = metrics_mid
+        else:
+            high = mid    # Calculate precision metrics
+    error_percentage = granularity / low * 100 if low > 0 else 0
+    confidence = 100.0 - error_percentage  # Higher is better
+    
+    search_metrics = SearchMetrics(
+        algorithm=algorithm,
+        total_tries=len(tries),
+        total_time=0.0,
+        precision_confidence=confidence  # Higher is better (100% = perfect)
+    )
+    
+    return ProbeResult(
+        max_context=low,
+        model_metrics=best_metrics,
+        search_metrics=search_metrics,
+        tries=tries
+    )
+
+def _pure_binary_search_min_first(model_name: str, max_ctx: int, granularity: int, algorithm: SearchAlgorithm) -> ProbeResult:
     """
     Pure binary search implementation for context probing.
     Simple, predictable algorithm that always halves the search space.
     """
-    logger.info(f"Finding max context size for {model_name} using pure binary search (granularity={granularity})...")
+    logger.info(f"Finding max context size for {model_name} using binary search min first (granularity={granularity})...")
     tries = []
     min_ctx = 2048
     
@@ -166,7 +250,7 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int, algorit
     while high - low > granularity:
         mid = (low + high) // 2
         
-        logger.info(f"Pure binary search at {mid} (low={low}, high={high}, gap={high-low})...")
+        logger.info(f"Binary search min first at {mid} (low={low}, high={high}, gap={high-low})...")
         fits_mid, metrics_mid = fits_in_vram(model_name, mid, isLoad=True)
         mem_mid, vram_mid = fetch_memory_usage(model_name)
         tries.append((mid, fits_mid, mem_mid, vram_mid))
