@@ -4,7 +4,7 @@ Context analysis commands for the ollama-models CLI.
 import os
 import logging
 from ollama_models.core.context_usage import generate_usage_report
-from ollama_models.core.context_probe import probe_max_context
+from ollama_models.core.context_probe import probe_max_context, SearchAlgorithm
 from ollama_models.config import DEFAULT_CONTEXT_USAGE_CSV, DEFAULT_MAX_CONTEXT_CSV
 
 logger = logging.getLogger("ollama_models.context")
@@ -94,7 +94,7 @@ def cmd_probe(args):
         logger.info(f"Probing maximum context sizes")
         
         # Use the integrated context probe module
-        fit_rows = probe_max_context(output_file, model_name)
+        fit_rows = probe_max_context(output_file, SearchAlgorithm.PURE_BINARY_G01, model_name)
         
         logger.info(f"Successfully probed maximum context sizes with {len(fit_rows)} entries")
         return 0

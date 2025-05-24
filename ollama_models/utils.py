@@ -243,24 +243,21 @@ def fetch_memory_usage(model_name):
         tuple: (total_size, vram_size) in bytes
     """
     logger = logging.getLogger("ollama_models.utils")
-    try:
-        logger.debug(f"Fetching memory usage for {model_name}")
-        resp = requests.get(f"{API_BASE}/api/ps", timeout=API_TIMEOUT)
-        resp.raise_for_status()
+
+    logger.debug(f"Fetching memory usage for {model_name}")
+    resp = requests.get(f"{API_BASE}/api/ps", timeout=API_TIMEOUT)
+    resp.raise_for_status()
+    
+    models_data = resp.json().get("models", [])
+    for m in models_data:
+        if m.get("model") == model_name:
+            size = m.get("size", 0)
+            vram = m.get("size_vram", 0)
+            logger.debug(f"Memory usage for {model_name}: total={size}, vram={vram}")
+            return size, vram
+    
+    raise ValueError(f"Model {model_name} not found in process list")
         
-        models_data = resp.json().get("models", [])
-        for m in models_data:
-            if m.get("model") == model_name:
-                size = m.get("size", 0)
-                vram = m.get("size_vram", 0)
-                logger.debug(f"Memory usage for {model_name}: total={size}, vram={vram}")
-                return size, vram
-                
-        logger.warning(f"Model {model_name} not found in process list")
-        return 0, 0
-    except requests.RequestException as e:
-        logger.error(f"Error fetching memory usage: {str(e)}")
-        return 0, 0
 
 def format_size(num_bytes):
     """

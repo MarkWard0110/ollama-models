@@ -20,7 +20,8 @@ logger = logging.getLogger("ollama_models.core.context_probe")
 
 class SearchAlgorithm(Enum):
     """Available search algorithms for context probing."""
-    PURE_BINARY = "pure_binary"
+    PURE_BINARY_G32 = "pure_binary_g32"
+    PURE_BINARY_G01 = "pure_binary_g01"
     ADAPTIVE_BINARY = "adaptive_binary"
 
 @dataclass
@@ -65,8 +66,7 @@ def fits_in_vram(model_name, context_size, isLoad=True):
     logger.info(f"Memory usage for {model_name} at {context_size}: total={size_hr}, VRAM={size_vram_hr}")
     return (size_vram >= size), result
 
-def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorithm = SearchAlgorithm.ADAPTIVE_BINARY, 
-                         granularity: Optional[int] = None) -> ProbeResult:
+def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorithm) -> ProbeResult:
     """
     Find maximum context size that fits in VRAM using specified search algorithm.
     
@@ -81,10 +81,12 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
     """
     start_time = time.time()
     
-    if algorithm == SearchAlgorithm.PURE_BINARY:
-        result = _pure_binary_search(model_name, max_ctx, granularity or 32)
+    if algorithm == SearchAlgorithm.PURE_BINARY_G32:
+        result = _pure_binary_search(model_name, max_ctx, 32, SearchAlgorithm.PURE_BINARY_G32)
+    elif algorithm == SearchAlgorithm.PURE_BINARY_G01:
+        result = _pure_binary_search(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_G01)
     elif algorithm == SearchAlgorithm.ADAPTIVE_BINARY:
-        result = _adaptive_binary_search(model_name, max_ctx, granularity)
+        result = _adaptive_binary_search(model_name, max_ctx)
     else:
         raise ValueError(f"Unknown search algorithm: {algorithm}")
     
@@ -94,7 +96,7 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
     _log_search_results(model_name, result)
     return result
 
-def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> ProbeResult:
+def _pure_binary_search(model_name: str, max_ctx: int, granularity: int, algorithm: SearchAlgorithm) -> ProbeResult:
     """
     Pure binary search implementation for context probing.
     Simple, predictable algorithm that always halves the search space.
@@ -110,7 +112,7 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
         tries.append((min_ctx, fits, mem, vram))
         
         search_metrics = SearchMetrics(
-            algorithm=SearchAlgorithm.PURE_BINARY,
+            algorithm=algorithm,
             total_tries=1,
             total_time=0.0
         )
@@ -129,7 +131,7 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
     
     if not fits_low:
         search_metrics = SearchMetrics(
-            algorithm=SearchAlgorithm.PURE_BINARY,
+            algorithm=algorithm,
             total_tries=1,
             total_time=0.0
         )
@@ -145,7 +147,7 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
     tries.append((max_ctx, fits_high, mem_high, vram_high))
     if fits_high:        
         search_metrics = SearchMetrics(
-            algorithm=SearchAlgorithm.PURE_BINARY,
+            algorithm=algorithm,
             total_tries=2,
             total_time=0.0,
             precision_confidence=100.0  # 100% confidence when exact max context fits
@@ -178,7 +180,7 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
     confidence = 100.0 - error_percentage  # Higher is better
     
     search_metrics = SearchMetrics(
-        algorithm=SearchAlgorithm.PURE_BINARY,
+        algorithm=algorithm,
         total_tries=len(tries),
         total_time=0.0,
         precision_confidence=confidence  # Higher is better (100% = perfect)
@@ -191,7 +193,7 @@ def _pure_binary_search(model_name: str, max_ctx: int, granularity: int) -> Prob
         tries=tries
     )
 
-def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional[int]) -> ProbeResult:
+def _adaptive_binary_search(model_name: str, max_ctx: int) -> ProbeResult:
     """
     Adaptive binary search implementation with flat memory detection and dynamic granularity.
     Optimized for models with flat memory curves and varying context-to-VRAM ratios.
@@ -199,7 +201,8 @@ def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional
     logger.info(f"Finding max context size for {model_name} using adaptive binary search...")
     tries = []
     min_ctx = 2048
-    
+    granularity = None  # Dynamic granularity, to be calculated later
+
     # Special case: min_ctx == max_ctx
     if min_ctx == max_ctx:
         fits, metrics = fits_in_vram(model_name, min_ctx, isLoad=True)
@@ -209,7 +212,8 @@ def _adaptive_binary_search(model_name: str, max_ctx: int, granularity: Optional
         search_metrics = SearchMetrics(
             algorithm=SearchAlgorithm.ADAPTIVE_BINARY,
             total_tries=1,
-            total_time=0.0
+            total_time=0.0,
+            precision_confidence=100.0  # 100% confidence when exact max context fits
         )
         
         return ProbeResult(
@@ -384,8 +388,7 @@ def _log_search_results(model_name: str, result: ProbeResult) -> None:
     logger.info(f"Tried contexts: {[t[0] for t in result.tries]}")
     logger.info("=== End Search Results ===")
 
-def probe_max_context(output_file: str, model_name: Optional[str] = None, 
-                      algorithm: SearchAlgorithm = SearchAlgorithm.ADAPTIVE_BINARY) -> List[List[str]]:
+def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: Optional[str] = None) -> List[List[str]]:
     """
     Find and save the maximum context size that fits in VRAM for models.
     The function now saves each model's context fit as soon as it's found,
@@ -511,21 +514,3 @@ def probe_max_context(output_file: str, model_name: Optional[str] = None,
             logger.info(f"Progress saved.")
 
     return fit_rows
-
-
-# Backward compatibility function - maintains the original API
-def find_max_fit_in_vram_legacy(model_name: str, max_ctx: int, granularity: Optional[int] = None) -> Tuple[int, Optional[Dict[str, Any]]]:
-    """
-    Legacy wrapper for backward compatibility with the original API.
-    Uses adaptive binary search by default.
-    
-    Args:
-        model_name: Name of the model
-        max_ctx: Maximum context size reported by the model
-        granularity: Search precision
-        
-    Returns:
-        Tuple of (max_context, model_metrics)
-    """
-    result = find_max_fit_in_vram(model_name, max_ctx, SearchAlgorithm.ADAPTIVE_BINARY, granularity)
-    return result.max_context, result.model_metrics

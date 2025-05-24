@@ -60,7 +60,7 @@ def sync_ollama(config_file, api_base):
     success = True
     
     # Pull new models
-    for model in sorted(new_models):
+    for model in sorted(selected): # using the full list of selected models to ensure we pull updates
         logger.info(f"Pulling model: {model}")
         try:
             resp = requests.post(f"{api_base}/api/pull", json={"model": model}, timeout=10800)

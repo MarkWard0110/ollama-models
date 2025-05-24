@@ -18,7 +18,6 @@ from typing import Dict, List, Tuple, Optional, Any
 from ollama_models.core.context_probe import (
     SearchAlgorithm, 
     find_max_fit_in_vram, 
-    probe_max_context,
     ProbeResult
 )
 from ollama_models.utils import fetch_installed_models, fetch_max_context_size
@@ -33,8 +32,8 @@ logger = logging.getLogger(__name__)
 # Model filter configuration
 MODEL_FILTER = [
     # === QUICK TEST MODELS (Small, fast) ===
-    "llama3.2:1b-instruct-fp16",  # ~1GB VRAM
-    "qwen3:0.6b-fp16",            # ~1GB VRAM
+    #"llama3.2:1b-instruct-fp16",  # ~1GB VRAM
+    #"qwen3:0.6b-fp16",            # ~1GB VRAM
     # "qwen2.5-coder:1.5b-instruct-fp16", # ~1.5GB VRAM
     
     # === MEDIUM MODELS (Moderate testing) ===
@@ -50,7 +49,7 @@ MODEL_FILTER = [
 FILTER_BY_SIZE = None     
 FILTER_BY_PARAMS: Optional[Tuple[Optional[float], Optional[float]]] = None  # Tuple[Optional[float], Optional[float]] or None
 SKIP_LARGE_MODELS = False  
-MAX_MODELS_TO_TEST = 2
+MAX_MODELS_TO_TEST = 1
 MAX_RUNTIME_MINUTES = None
 
 def list_available_models():
@@ -281,7 +280,7 @@ def run_all_probes(models_to_test: List[Dict], algorithms: Optional[List[SearchA
         ProbeDataCollector containing all results
     """
     if algorithms is None:
-        algorithms = [SearchAlgorithm.PURE_BINARY, SearchAlgorithm.ADAPTIVE_BINARY]
+        algorithms = [SearchAlgorithm.PURE_BINARY_G32, SearchAlgorithm.PURE_BINARY_G01, SearchAlgorithm.ADAPTIVE_BINARY]
     
     collector = ProbeDataCollector()
     
