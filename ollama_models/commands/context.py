@@ -31,6 +31,8 @@ def setup_parser(parser):
                             help=f"Output CSV file (default: {DEFAULT_MAX_CONTEXT_CSV})")
     probe_parser.add_argument("--model", "-m", 
                             help="Process only this specific model (optional)")
+    probe_parser.add_argument("--max-vram", "-v", 
+                            help="Limit the amount of VRAM by setting a max VRAM amount (optional)")
 
 def handle_command(args):
     """
@@ -90,11 +92,24 @@ def cmd_probe(args):
     try:
         output_file = args.output
         model_name = args.model if hasattr(args, 'model') else None
-        
+        max_vram_arg = args.max_vram if hasattr(args, 'max_vram') else None
+
+        if max_vram_arg is not None:
+            try:
+                # parse the max VRAM argument.  It is in GiB, so we convert it to a number of bytes
+                max_vram = int(float(max_vram_arg) * 1024 * 1024 * 1024) # Convert GiB to bytes
+            except ValueError:
+                logger.error(f"Invalid max VRAM value: {max_vram_arg}. Must be an number.")
+                return 1
+        else:
+            max_vram = 0
+            
         logger.info(f"Probing maximum context sizes")
-        
+        if max_vram > 0:
+            logger.info(f"Using maximum VRAM limit: {max_vram}")
+
         # Use the integrated context probe module
-        fit_rows = probe_max_context(output_file, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01, model_name)
+        fit_rows = probe_max_context(output_file, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01, model_name, max_vram=max_vram)
         
         logger.info(f"Successfully probed maximum context sizes with {len(fit_rows)} entries")
         return 0

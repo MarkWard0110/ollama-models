@@ -40,7 +40,7 @@ class ProbeResult:
     search_metrics: SearchMetrics
     tries: List[Tuple[int, bool, int, int]]  # (context_size, fits, mem_used, vram_used)
 
-def fits_in_vram(model_name, context_size, isLoad=True):
+def fits_in_vram(model_name, context_size, max_vram=0, isLoad=True):
     """
     Check if a model fits in VRAM at a given context size and collect metrics.
     
@@ -59,9 +59,13 @@ def fits_in_vram(model_name, context_size, isLoad=True):
     size_hr = format_size(size)
     size_vram_hr = format_size(size_vram)
     logger.info(f"Memory usage for {model_name} at {context_size}: total={size_hr}, VRAM={size_vram_hr}")
-    return (size_vram >= size), result
+    
+    if max_vram <= 0:
+        return (size_vram >= size), result
+    else:
+        return (size_vram >= size and size_vram <= max_vram), result
 
-def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorithm) -> ProbeResult:
+def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorithm, max_vram=0) -> ProbeResult:
     """
     Find maximum context size that fits in VRAM using specified search algorithm.
     
@@ -78,7 +82,7 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
     
     
     if algorithm == SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01:
-        result = _pure_binary_search_max_first(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01)
+        result = _pure_binary_search_max_first(model_name, max_ctx, 1, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01, max_vram=max_vram)
     else:
         raise ValueError(f"Unknown search algorithm: {algorithm}")
     
@@ -88,7 +92,7 @@ def find_max_fit_in_vram(model_name: str, max_ctx: int, algorithm: SearchAlgorit
     _log_search_results(model_name, result)
     return result
 
-def _pure_binary_search_max_first(model_name: str, max_ctx: int, granularity: int, algorithm: SearchAlgorithm) -> ProbeResult:
+def _pure_binary_search_max_first(model_name: str, max_ctx: int, granularity: int, algorithm: SearchAlgorithm, max_vram=0) -> ProbeResult:
     """
     Pure binary search implementation that checks max context first.
     """
@@ -98,7 +102,7 @@ def _pure_binary_search_max_first(model_name: str, max_ctx: int, granularity: in
      
     # Initial bounds testing
      
-    fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True)
+    fits_high, metrics_high = fits_in_vram(model_name, max_ctx, isLoad=True, max_vram=max_vram)
     mem_high, vram_high = fetch_memory_usage(model_name)
     tries.append((max_ctx, fits_high, mem_high, vram_high))
     if fits_high:        
@@ -115,7 +119,7 @@ def _pure_binary_search_max_first(model_name: str, max_ctx: int, granularity: in
             tries=tries
         )
     
-    fits_low, metrics_low = fits_in_vram(model_name, min_ctx, isLoad=True)
+    fits_low, metrics_low = fits_in_vram(model_name, min_ctx, isLoad=True, max_vram=max_vram)
     mem_low, vram_low = fetch_memory_usage(model_name)
     tries.append((min_ctx, fits_low, mem_low, vram_low))
     
@@ -140,7 +144,7 @@ def _pure_binary_search_max_first(model_name: str, max_ctx: int, granularity: in
         mid = (low + high) // 2
         
         logger.info(f"Binary search max first at {mid} (low={low}, high={high}, gap={high-low})...")
-        fits_mid, metrics_mid = fits_in_vram(model_name, mid, isLoad=True)
+        fits_mid, metrics_mid = fits_in_vram(model_name, mid, isLoad=True, max_vram=max_vram)
         mem_mid, vram_mid = fetch_memory_usage(model_name)
         tries.append((mid, fits_mid, mem_mid, vram_mid))
         
@@ -182,7 +186,7 @@ def _log_search_results(model_name: str, result: ProbeResult) -> None:
     logger.info(f"Tried contexts: {[t[0] for t in result.tries]}")
     logger.info("=== End Search Results ===")
 
-def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: Optional[str] = None) -> List[List[str]]:
+def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: Optional[str] = None, max_vram=0) -> List[List[str]]:
     """
     Find and save the maximum context size that fits in VRAM for models.
     The function now saves each model's context fit as soon as it's found,
@@ -257,7 +261,7 @@ def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: 
         logger.info(f"Maximum reported context size: {max_ctx}")
         
         # Use the new algorithm-based search
-        result = find_max_fit_in_vram(name, max_ctx, algorithm)
+        result = find_max_fit_in_vram(name, max_ctx, algorithm, max_vram=max_vram)
         
         elapsed = time.time() - start_time
         elapsed_human = time.strftime('%H:%M:%S', time.gmtime(elapsed))
