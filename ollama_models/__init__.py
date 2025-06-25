@@ -15,7 +15,6 @@ Commands:
 """
 
 __version__ = "1.0.0"
-__author__ = "Binary Ward"
+__author__ = "Mark Ward"
 __license__ = "MIT"
-__email__ = "contact@binaryward.com"
-__url__ = "https://github.com/binaryward/ollama-models"
+__url__ = "https://github.com/MarkWard0110/ollama-models"

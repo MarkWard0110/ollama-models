@@ -18,7 +18,7 @@ setup(
     author="Binary Ward",
     description="Tools for managing and analyzing Ollama models",
     long_description=long_description,
-    long_description_content_type="text/markdown",    url="https://github.com/binaryward/ollama-models",
+    long_description_content_type="text/markdown",    url="https://github.com/MarkWard0110/ollama-models",
     packages=find_packages(exclude=["tests", "tests.*"]),
     classifiers=[
         "Programming Language :: Python :: 3",

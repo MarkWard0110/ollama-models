@@ -39,7 +39,7 @@ It is recommended to install `ollama-models` in a virtual environment or globall
 First, clone the repository (anywhere on your system):
 
 ```
-git clone https://github.com/binaryward/ollama-models.git
+git clone https://github.com/MarkWard0110/ollama-models.git
 ```
 
 Then, from your working environment (such as your virtual environment or system Python), install the package by referencing the path to the cloned repo. For example:
@@ -86,6 +86,8 @@ ollama-models model apply --config-file config.json
     - Need to reserve VRAM for other applications running on your system.
     - Have multiple GPUs and want to restrict probing to the capacity of a single GPU for optimal performance (avoiding model sharding across devices).
     - Want to load multiple models into VRAM and need to determine the maximum context size for each within a shared VRAM budget.
+
+> **Note:** For best results, run context analysis tools (usage/probe) when your Ollama server is *not* being used for other tasks. This ensures accurate measurements and avoids interfering with running models or workloads.
 
 #### Example:
 
