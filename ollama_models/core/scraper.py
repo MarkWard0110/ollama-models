@@ -66,10 +66,6 @@ class OllamaScraper:
                     description_elem = element.select_one('p')
                 description = description_elem.text.strip() if description_elem else ""
                 
-                # Extract pull count using x-test-pull-count
-                pull_count_elem = element.select_one('span[x-test-pull-count]')
-                pull_count = pull_count_elem.text.strip() if pull_count_elem else ""
-                
                 # Extract tag count using x-test-tag-count
                 tag_count_elem = element.select_one('span[x-test-tag-count]')
                 tag_count = int(tag_count_elem.text.replace(',', '')) if tag_count_elem and tag_count_elem.text.replace(',', '').isdigit() else 0
@@ -106,7 +102,6 @@ class OllamaScraper:
                     "name": model_name,
                     "url": model_url,
                     "description": description,
-                    "pull_count": pull_count,
                     "tag_count": tag_count,
                     "tags": [],
                     "capabilities": capabilities,
@@ -529,24 +524,23 @@ def scrape_and_save(output_file):
     now = datetime.now()
     for model in models:
         model["updated_timestamp"] = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-        
         # Ensure "updated" field is removed from models
         if "updated" in model:
             del model["updated"]
-        
+        # Sort tags by name
+        model["tags"] = sorted(model["tags"], key=lambda t: t.get("name", ""))
         # Add timestamps to tags and remove "updated" field
         for tag in model["tags"]:
             # If tag doesn't already have a timestamp, add one
             if "updated_timestamp" not in tag or tag["updated_timestamp"] is None:
                 tag["updated_timestamp"] = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-            
             # Remove "updated" field from tags
             if "updated" in tag:
                 del tag["updated"]
-    
+    # Sort models by name
+    models = sorted(models, key=lambda m: m.get("name", ""))
     # Phase 4: Save to JSON file
     with open(output_file, 'w') as f:
         json.dump(models, f, indent=2)
-    
     logger.info(f"Saved {len(models)} models to {output_file}")
     return len(models)
