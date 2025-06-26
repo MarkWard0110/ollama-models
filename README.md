@@ -19,6 +19,22 @@ There are two main ways to begin managing your Ollama models, depending on your 
 
 For step-by-step instructions and advanced usage, see [`ollama_models/README.md`](ollama_models/README.md).
 
+Use `ollama-models model edit` to pick the models you want.
+
+![Edit model menu](doc/edit-model-menu.png)
+
+to modify your `ollama_models.conf`
+
+![Edit ollama model config](doc/edit-ollama-model-conf.png)
+
+Probe for maximum context based on the available VRAM
+
+![Max context probe](doc/context-probe-5090-3090.png)
+
+Report memory usage per model based on 2^n context sizes up to model's max context size
+
+![Model usage](doc/context-usage-5090-3090.png)
+
 **Getting Model Data:**
 - The package includes a starter `ollama_models.json` file. You can fetch the latest model data from Ollama.com at any time using the `fetch` command. This creates a new file and does not overwrite the original.
 - Note: Fetching relies on scraping Ollama.com and may fail if the website changes.
