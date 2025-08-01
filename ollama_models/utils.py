@@ -12,7 +12,6 @@ API_BASE = DEFAULT_API_BASE
 
 # Force the logger for 'ollama_models.utils' to DEBUG level at the top of the file for troubleshooting
 logger = logging.getLogger("ollama_models.utils")
-logger.setLevel(logging.INFO)
 
 def fetch_installed_models():
     """
