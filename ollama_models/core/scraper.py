@@ -122,20 +122,32 @@ class OllamaScraper:
     
     def extract_param_size(self, tag_name):
         """Extract parameter size from tag name"""
-        size_match = re.search(r'(\d+(?:\.\d+)?)[bB]', tag_name)
+        # Look for a number followed by a unit (b = billions, m = millions)
+        # Examples: '7b', '13B', '270m', '270M', 'gemma3:270m-it-bf16'
+        size_match = re.search(r"(\d+(?:\.\d+)?)([bBmM])", tag_name)
         if size_match:
             try:
-                param_size = size_match.group(1)
-                param_size = float(param_size)
+                value = float(size_match.group(1))
+                unit = size_match.group(2).lower()
+                if unit == 'b':
+                    param_size = value
+                elif unit == 'm':
+                    # convert millions to billions
+                    param_size = value / 1000.0
+                else:
+                    return None
+
+                # Return integer when it's equivalent
                 if param_size == int(param_size):
                     param_size = int(param_size)
                 return param_size
             except ValueError:
                 pass
-        
-        # Try common parameter sizes
+
+        # Try common parameter sizes (legacy fallback matching '1b', '1.6b', etc.)
         for param in ['1', '1.6', '3', '4', '7', '8', '10.7', '12', '13', '27', '30', '33', '34', '65', '70', '72']:
-            if f"-{param}b" in tag_name.lower() or f":{param}b" in tag_name.lower() or tag_name.lower() == param + "b":
+            lower = tag_name.lower()
+            if f"-{param}b" in lower or f":{param}b" in lower or lower == param + "b":
                 try:
                     param_size = float(param)
                     if param_size == int(param_size):
@@ -143,7 +155,7 @@ class OllamaScraper:
                     return param_size
                 except ValueError:
                     pass
-        
+
         return None
     
     def extract_quantization(self, tag_name):

@@ -430,7 +430,8 @@ def _tag_selector_ui(stdscr, models, selected, config_file):
                 if not size_list:
                     show_message(stdscr, f"No sizes available for {model}")
                     continue
-                size_labels = [f"{size}" if size is not None else "Unknown" for size in size_list]
+                # Show size labels with 'B' to make it clear these are billions
+                size_labels = [f"{size}B" if size is not None else "Unknown" for size in size_list]
                 size_idx = 0
                 while True:
                     title = f"\nSelect parameter size for {model}"
@@ -477,7 +478,11 @@ def get_model_info_display(model_name, model_data):
         str: String with model information
     """
     # Get the sizes and capabilities directly from the model data
-    sizes_str = ",".join(map(str, model_data["size_list"])) if model_data["size_list"] else "unknown"
+    # Display parameter sizes with the unit 'B' to indicate billions
+    if model_data["size_list"]:
+        sizes_str = ",".join(f"{s}B" for s in model_data["size_list"]) 
+    else:
+        sizes_str = "unknown"
     capabilities_str = ",".join(model_data["capabilities"]) if model_data["capabilities"] else ""
     
     # Format the display string
