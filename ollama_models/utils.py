@@ -99,28 +99,6 @@ def fetch_parameter_count(model_name):
         raise ValueError("Parameter count not found in model info")
 
 def try_model_call(model_name, context_size, isLoad=False):
-    """
-    Test if a model can handle a given context size and return metrics.
-    
-    Args:
-        model_name (str): Name of the model
-        context_size (int): Context size to test
-        
-    Returns:
-        dict: {
-            'success': bool,
-            'tokens_per_second': float or None,
-            'decode_tokens_per_second': float or None,
-            'total_duration': float or None (seconds),
-            'total_duration_human': str or None,
-            'eval_count': int or None,
-            'prompt_eval_count': int or None,
-            'eval_duration': float or None (ns),
-            'prompt_eval_duration': float or None (ns),
-            'load_duration': float or None (ns),
-            'raw_response': dict or None
-        }
-    """
     import time
     logger = logging.getLogger("ollama_models.utils")
     payload_chat = {
@@ -147,22 +125,22 @@ def try_model_call(model_name, context_size, isLoad=False):
         end = time.time()
         data = resp.json()
         # Extract metrics if present
-        eval_count = data.get('eval_count')
-        prompt_eval_count = data.get('prompt_eval_count')
-        eval_duration = data.get('eval_duration')
-        prompt_eval_duration = data.get('prompt_eval_duration')
+        output_eval_count = data.get('eval_count')
+        input_eval_count = data.get('prompt_eval_count')
+        output_eval_duration = data.get('eval_duration')
+        input_eval_duration = data.get('prompt_eval_duration')
         load_duration = data.get('load_duration')
         total_duration = data.get('total_duration')
         # Fallback to wall time if not present
         if total_duration is None:
             total_duration = int((end - start) * 1e9)  # ns
         # Compute metrics
-        tokens_per_second = None
-        decode_tokens_per_second = None
-        if total_duration and prompt_eval_count is not None and eval_count is not None:
-            tokens_per_second = (prompt_eval_count + eval_count) / (total_duration / 1e9)
-        if eval_duration and eval_count is not None:
-            decode_tokens_per_second = eval_count / (eval_duration / 1e9)
+        input_tokens_per_second = None
+        output_tokens_per_second = None
+        if total_duration and input_eval_count is not None and output_eval_count is not None:
+            input_tokens_per_second = (input_eval_count + output_eval_count) / (total_duration / 1e9)
+        if output_eval_duration and output_eval_count is not None:
+            output_tokens_per_second = output_eval_count / (output_eval_duration / 1e9)
         # Human-friendly duration
         def human_time(ns):
             s = ns / 1e9
@@ -177,14 +155,14 @@ def try_model_call(model_name, context_size, isLoad=False):
         total_duration_human = human_time(total_duration) if total_duration else None
         return {
             'success': True,
-            'tokens_per_second': tokens_per_second,
-            'decode_tokens_per_second': decode_tokens_per_second,
+            'input_tokens_per_second': input_tokens_per_second,
+            'output_tokens_per_second': output_tokens_per_second,
             'total_duration': total_duration / 1e9 if total_duration else None,
             'total_duration_human': total_duration_human,
-            'eval_count': eval_count,
-            'prompt_eval_count': prompt_eval_count,
-            'eval_duration': eval_duration,
-            'prompt_eval_duration': prompt_eval_duration,
+            'output_eval_count': output_eval_count,
+            'input_eval_count': input_eval_count,
+            'input_eval_duration': input_eval_duration,
+            'output_eval_duration': output_eval_duration,
             'load_duration': load_duration,
             'raw_response': data
         }
@@ -204,14 +182,14 @@ def try_model_call(model_name, context_size, isLoad=False):
             data = resp.json()
             return {
                 'success': True,
-                'tokens_per_second': None,
-                'decode_tokens_per_second': None,
+                'input_tokens_per_second': None,
+                'output_tokens_per_second': None,
                 'total_duration': None,
                 'total_duration_human': None,
-                'eval_count': None,
-                'prompt_eval_count': None,
-                'eval_duration': None,
-                'prompt_eval_duration': None,
+                'output_eval_count': None,
+                'input_eval_count': None,
+                'input_eval_duration': None,
+                'output_eval_duration': None,
                 'load_duration': None,
                 'raw_response': data
             }
@@ -219,14 +197,14 @@ def try_model_call(model_name, context_size, isLoad=False):
             logger.debug(f"Embed API test failed for {model_name} with context {context_size}: {str(e)}")
             return {
                 'success': False,
-                'tokens_per_second': None,
-                'decode_tokens_per_second': None,
+                'input_tokens_per_second': None,
+                'output_tokens_per_second': None,
                 'total_duration': None,
                 'total_duration_human': None,
-                'eval_count': None,
-                'prompt_eval_count': None,
-                'eval_duration': None,
-                'prompt_eval_duration': None,
+                'output_eval_count': None,
+                'input_eval_count': None,
+                'input_eval_duration': None,
+                'output_eval_duration': None,
                 'load_duration': None,
                 'raw_response': None
             }

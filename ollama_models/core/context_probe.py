@@ -238,7 +238,7 @@ def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: 
             fit_writer = csv.writer(fit_file)
             fit_writer.writerow([
                 "model_name", "max_context_size", "is_model_max",
-                "memory_allocated", "tokens_per_second", "decode_tokens_per_second", 
+                "memory_allocated", "input_tokens_per_second", "output_tokens_per_second", 
                 "total_duration", "total_duration_human", "search_algorithm",
                 "search_time", "total_tries", "precision_confidence"
             ])
@@ -292,8 +292,8 @@ def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: 
                 result.max_context, 
                 is_model_max,
                 size_hr,
-                metrics_to_use.get('tokens_per_second') if metrics_to_use else None,
-                metrics_to_use.get('decode_tokens_per_second') if metrics_to_use else None,
+                metrics_to_use.get('input_tokens_per_second') if metrics_to_use else None,
+                metrics_to_use.get('output_tokens_per_second') if metrics_to_use else None,
                 metrics_to_use.get('total_duration') if metrics_to_use else None,
                 metrics_to_use.get('total_duration_human') if metrics_to_use else None,
                 result.search_metrics.algorithm.value,                f"{result.search_metrics.total_time:.2f}",

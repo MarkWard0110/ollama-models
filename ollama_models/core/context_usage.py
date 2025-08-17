@@ -42,7 +42,7 @@ def save_progress(output_file, usage_rows):
             usage_writer = csv.writer(usage_file)
             usage_writer.writerow([
                 "model_name", "context_size", "memory_allocated",
-                "tokens_per_second", "decode_tokens_per_second", "total_duration", "total_duration_human"
+                "input_tokens_per_second", "output_tokens_per_second", "total_duration", "total_duration_human"
             ])
             for row in sorted_rows:
                 usage_writer.writerow(row)
@@ -129,8 +129,8 @@ def measure_usage(output_file, usage_set, usage_rows, name, ctx):
         logger.info(f"Measured at context = {ctx}, total allocated: {size_hr}, VRAM: {size_vram_hr}")
         usage_rows.append([
             name, ctx, size_hr,
-            result.get('tokens_per_second'),
-            result.get('decode_tokens_per_second'),
+            result.get('input_tokens_per_second'),
+            result.get('output_tokens_per_second'),
             result.get('total_duration'),
             result.get('total_duration_human')
         ])
