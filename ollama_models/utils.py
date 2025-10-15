@@ -27,7 +27,10 @@ def fetch_installed_models():
         resp = requests.get(f"{API_BASE}/api/tags", timeout=API_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
-        return data.get("models", [])
+        models = data.get("models", [])
+        # filter out any "-cloud" models
+        models = [m for m in models if not m.get("name", "").endswith("-cloud")]
+        return models
     except requests.RequestException as e:
         logger = logging.getLogger("ollama_models.utils")
         logger.error(f"Error fetching models from {API_BASE}: {str(e)}")

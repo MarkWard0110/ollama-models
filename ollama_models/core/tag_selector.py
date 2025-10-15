@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import logging
+import re
 
 try:
     import curses
@@ -41,7 +42,24 @@ def load_models(json_path):
         model_sizes = model_entry.get("sizes", [])
         
         for tag in tags:
+            # Prefer tag-level parameter size, otherwise fall back:
+            # 1) If the model advertises exactly one parameter size, use it
+            # 2) Try to infer from the tag name like "7b", "13B", or "7.1B"
+            # 3) As a last resort, group under Unknown (None)
             size = tag.get("parameter_size")
+            if size is None:
+                # Single-size model fallback
+                if isinstance(model_sizes, list) and len(model_sizes) == 1:
+                    size = model_sizes[0]
+                else:
+                    # Try to infer from tag name pattern like "7b" or "13B"
+                    tag_name = tag.get("name", "") or ""
+                    m = re.search(r"(\d+(?:\.\d+)?)\s*[bB]", tag_name)
+                    if m:
+                        try:
+                            size = float(m.group(1))
+                        except Exception:
+                            size = None
             if size not in sizes:
                 sizes[size] = []
             sizes[size].append({
@@ -417,21 +435,30 @@ def _tag_selector_ui(stdscr, models, selected, config_file):
                     break
                 model = model_name_map[model_display]
                 sizes_dict = models[model]["sizes_dict"]
-                def parse_size(size_str):
-                    if size_str is None:
-                        return 0
-                    if isinstance(size_str, str) and size_str.lower().endswith('b'):
-                        size_str = size_str[:-1]
+                def parse_size_key(k):
+                    # Normalize keys that may be numeric, string with B, or None
+                    if k is None:
+                        return float("inf")  # Push Unknown to the end
+                    if isinstance(k, (int, float)):
+                        return float(k)
+                    s = str(k).strip()
+                    if s.lower().endswith('b'):
+                        s = s[:-1]
                     try:
-                        return float(size_str)
-                    except (ValueError, TypeError):
-                        return 0
-                size_list = sorted([s for s in sizes_dict.keys() if s is not None], key=parse_size)
-                if not size_list:
+                        return float(s)
+                    except Exception:
+                        return float("inf")
+                # Keep None (Unknown) if present so users can still access untyped tags
+                size_keys = list(sizes_dict.keys())
+                # If we only have Unknown (None) sizes but there are tags, still allow selection
+                if not size_keys:
                     show_message(stdscr, f"No sizes available for {model}")
                     continue
-                # Show size labels with 'B' to make it clear these are billions
-                size_labels = [f"{size}B" if size is not None else "Unknown" for size in size_list]
+                size_list = sorted(size_keys, key=parse_size_key)
+                # Show size labels with 'B' to make it clear these are billions; use Unknown for None
+                def label_for(k):
+                    return "Unknown" if k is None else f"{k}B"
+                size_labels = [label_for(k) for k in size_list]
                 size_idx = 0
                 while True:
                     title = f"\nSelect parameter size for {model}"
@@ -439,11 +466,13 @@ def _tag_selector_ui(stdscr, models, selected, config_file):
                     if size_label is None:
                         break  # Go back to model selection
                     size = size_list[size_idx]
-                    tags = models[model]["sizes_dict"][size]
+                    tags = models[model]["sizes_dict"].get(size, [])
                     if not tags:
-                        show_message(stdscr, f"No tags available for {model} at size {size}B")
+                        label = "Unknown" if size is None else f"{size}B"
+                        show_message(stdscr, f"No tags available for {model} at size {label}")
                         continue
-                    changes_made, selected, go_back = interactive_toggle_tags(stdscr, model, f"{size}B", tags, selected)
+                    display_size = "Unknown" if size is None else f"{size}B"
+                    changes_made, selected, go_back = interactive_toggle_tags(stdscr, model, display_size, tags, selected)
                     if changes_made:
                         need_save = True
                         save_config(selected, config_file)
@@ -480,7 +509,10 @@ def get_model_info_display(model_name, model_data):
     # Get the sizes and capabilities directly from the model data
     # Display parameter sizes with the unit 'B' to indicate billions
     if model_data["size_list"]:
-        sizes_str = ",".join(f"{s}B" for s in model_data["size_list"]) 
+        try:
+            sizes_str = ",".join(f"{s}B" for s in model_data["size_list"]) 
+        except Exception:
+            sizes_str = "unknown"
     else:
         sizes_str = "unknown"
     capabilities_str = ",".join(model_data["capabilities"]) if model_data["capabilities"] else ""
