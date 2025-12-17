@@ -18,6 +18,7 @@ class OllamaScraper:
     """
     BASE_URL = "https://ollama.com"
     SEARCH_URL = f"{BASE_URL}/search"
+    LIBRARY_URL = f"{BASE_URL}/library"
     
     def __init__(self, delay=0.001):
         self.delay = delay  # Delay between requests to be respectful
@@ -120,6 +121,55 @@ class OllamaScraper:
             models.append(model_info)
 
         return models
+
+    def _get_models_from_library_index(self):
+        """Scrape all models from the /library index page.
+
+        The /search endpoint appears to cap results (currently ~200). The /library index
+        currently lists the full catalog, so we use it as a completeness fallback.
+        """
+        logger.info("Fetching all models from library index...")
+        response = self.session.get(self.LIBRARY_URL)
+        response.raise_for_status()
+
+        # Try the structured parser first (in case /library uses the same list item structure)
+        models = self._parse_search_page(response.text)
+        if models:
+            return models
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Fallback: extract unique /library/<model> links.
+        names = set()
+        for link in soup.select('a[href^="/library/"]'):
+            href = link.get('href')
+            if not href:
+                continue
+            href = str(href)
+
+            # Strip query/fragment
+            href = href.split('?', 1)[0].split('#', 1)[0]
+            # Keep only /library/<slug>
+            slug = href.split('/library/', 1)[-1]
+            slug = slug.split('/', 1)[0]
+            # Ignore tag or other subpages (e.g., /tags) and tag-qualified links
+            if not slug or slug == 'tags':
+                continue
+            slug = slug.split(':', 1)[0]
+            names.add(slug)
+
+        return [
+            {
+                "name": name,
+                "url": f"{self.BASE_URL}/library/{name}",
+                "description": "",
+                "tag_count": 0,
+                "tags": [],
+                "capabilities": [],
+                "sizes": []
+            }
+            for name in sorted(names)
+        ]
         
     def get_all_models(self):
         """Scrape all models from the search page.
@@ -131,10 +181,31 @@ class OllamaScraper:
         logger.info("Fetching all models from search page...")
 
         # The site uses a hidden input "o" (sort) with values like "newest".
-        # The default /search response does not necessarily include the newest models.
+        # The default /search response does not necessarily include the newest models,
+        # and /search appears to cap results.
         sort_orders = [None, "newest"]
 
         models_by_name = {}
+
+        def merge_models(candidates):
+            for model in candidates:
+                name = model.get("name")
+                if not name:
+                    continue
+                if name not in models_by_name:
+                    models_by_name[name] = model
+                    continue
+
+                existing = models_by_name[name]
+                # Prefer richer metadata if we have it
+                if len(model.get("capabilities", [])) > len(existing.get("capabilities", [])):
+                    models_by_name[name] = model
+                elif len(model.get("sizes", [])) > len(existing.get("sizes", [])):
+                    models_by_name[name] = model
+                elif len(model.get("description", "")) > len(existing.get("description", "")):
+                    models_by_name[name] = model
+
+        # 1) Gather from /search with multiple sorts (fast, includes metadata)
         for sort_order in sort_orders:
             params = {}
             if sort_order:
@@ -142,24 +213,13 @@ class OllamaScraper:
 
             response = self.session.get(self.SEARCH_URL, params=params)
             response.raise_for_status()
-
-            page_models = self._parse_search_page(response.text)
-            for model in page_models:
-                name = model.get("name")
-                if not name:
-                    continue
-                # Prefer an existing record with more metadata if present; otherwise keep first.
-                if name not in models_by_name:
-                    models_by_name[name] = model
-                else:
-                    existing = models_by_name[name]
-                    if len(model.get("capabilities", [])) > len(existing.get("capabilities", [])):
-                        models_by_name[name] = model
-                    elif len(model.get("sizes", [])) > len(existing.get("sizes", [])):
-                        models_by_name[name] = model
+            merge_models(self._parse_search_page(response.text))
 
             # Be nice to the server
             time.sleep(self.delay)
+
+        # 2) Ensure completeness using the /library index
+        merge_models(self._get_models_from_library_index())
 
         models = list(models_by_name.values())
         logger.info(f"Found {len(models)} models")
