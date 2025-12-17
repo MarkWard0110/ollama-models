@@ -25,98 +25,143 @@ class OllamaScraper:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
-        
-    def get_all_models(self):
-        """Scrape all models from the search page"""
-        logger.info("Fetching all models from search page...")
-        response = self.session.get(self.SEARCH_URL)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
+
+    def _parse_search_page(self, html_text: str):
+        """Parse a /search HTML response into model records."""
+        soup = BeautifulSoup(html_text, 'html.parser')
+
         models = []
         # Select list items with x-test-model attribute (new website structure)
         model_elements = soup.select('li[x-test-model]')
-        
+
         if not model_elements:
             logger.warning("No model elements found with x-test-model. Website structure may have changed.")
             # Try generic li elements instead
             model_elements = soup.select('li.flex.flex-col')
-        
+
         for element in model_elements:
             link = element.select_one('a')
             if not link or not link.get('href'):
                 continue
-                
+
             href = link.get('href')
-            if '/library/' in href:
-                # Extract model name using x-test-search-response-title if available
-                model_name_elem = element.select_one('span[x-test-search-response-title]')
-                if model_name_elem:
-                    model_name = model_name_elem.text.strip()
+            if not href:
+                continue
+            href = str(href)
+            if '/library/' not in href:
+                continue
+
+            # Extract model name using x-test-search-response-title if available
+            model_name_elem = element.select_one('span[x-test-search-response-title]')
+            if model_name_elem:
+                model_name = model_name_elem.text.strip()
+            else:
+                # Fallback to href parsing
+                model_name = href.split('/')[-1]
+
+            model_url = self.BASE_URL + href
+
+            # Extract description
+            description_elem = element.select_one('p.max-w-lg')
+            if not description_elem:
+                description_elem = element.select_one('p.break-words')
+            if not description_elem:
+                description_elem = element.select_one('p')
+            description = description_elem.text.strip() if description_elem else ""
+
+            # Extract tag count using x-test-tag-count
+            tag_count_elem = element.select_one('span[x-test-tag-count]')
+            tag_count = int(tag_count_elem.text.replace(',', '')) if tag_count_elem and tag_count_elem.text.replace(',', '').isdigit() else 0
+
+            # Extract update time using x-test-updated
+            updated_elem = element.select_one('span[x-test-updated]')
+            updated = updated_elem.text.strip() if updated_elem else ""
+
+            # Extract capabilities directly from the model listing
+            capabilities = []
+            capability_elems = element.select('span[x-test-capability]')
+            for cap_elem in capability_elems:
+                cap_text = cap_elem.text.strip().lower()
+                if cap_text and cap_text not in capabilities:
+                    capabilities.append(cap_text)
+
+            # Extract sizes directly from the model listing
+            sizes = []
+            size_elems = element.select('span[x-test-size]')
+            for size_elem in size_elems:
+                size_text = size_elem.text.strip().lower()
+                # Try to parse the size as a numeric value (remove 'b' from '7b', etc.)
+                size_match = re.search(r'(\d+(?:\.\d+)?)[bB]', size_text)
+                if size_match:
+                    try:
+                        param_size = float(size_match.group(1))
+                        if param_size == int(param_size):
+                            param_size = int(param_size)
+                        sizes.append(param_size)
+                    except ValueError:
+                        pass
+
+            # Add model info
+            model_info = {
+                "name": model_name,
+                "url": model_url,
+                "description": description,
+                "tag_count": tag_count,
+                "tags": [],
+                "capabilities": capabilities,
+                "sizes": sorted(list(set(sizes))) if sizes else []
+            }
+
+            # Convert relative date to timestamp
+            updated_timestamp = self.convert_relative_date(updated)
+            if updated_timestamp:
+                model_info["updated_timestamp"] = updated_timestamp
+
+            models.append(model_info)
+
+        return models
+        
+    def get_all_models(self):
+        """Scrape all models from the search page.
+
+        Ollama's /search results are sorted/filtered server-side. Some models (like newly
+        published ones) may only appear when requesting the newest sort order.
+        To avoid missing recently-added models, we union results across multiple sort orders.
+        """
+        logger.info("Fetching all models from search page...")
+
+        # The site uses a hidden input "o" (sort) with values like "newest".
+        # The default /search response does not necessarily include the newest models.
+        sort_orders = [None, "newest"]
+
+        models_by_name = {}
+        for sort_order in sort_orders:
+            params = {}
+            if sort_order:
+                params["o"] = sort_order
+
+            response = self.session.get(self.SEARCH_URL, params=params)
+            response.raise_for_status()
+
+            page_models = self._parse_search_page(response.text)
+            for model in page_models:
+                name = model.get("name")
+                if not name:
+                    continue
+                # Prefer an existing record with more metadata if present; otherwise keep first.
+                if name not in models_by_name:
+                    models_by_name[name] = model
                 else:
-                    # Fallback to href parsing
-                    model_name = href.split('/')[-1]
-                
-                model_url = self.BASE_URL + href
-                
-                # Extract description
-                description_elem = element.select_one('p.max-w-lg')
-                if not description_elem:
-                    description_elem = element.select_one('p.break-words')
-                if not description_elem:
-                    description_elem = element.select_one('p')
-                description = description_elem.text.strip() if description_elem else ""
-                
-                # Extract tag count using x-test-tag-count
-                tag_count_elem = element.select_one('span[x-test-tag-count]')
-                tag_count = int(tag_count_elem.text.replace(',', '')) if tag_count_elem and tag_count_elem.text.replace(',', '').isdigit() else 0
-                
-                # Extract update time using x-test-updated
-                updated_elem = element.select_one('span[x-test-updated]')
-                updated = updated_elem.text.strip() if updated_elem else ""
-                
-                # Extract capabilities directly from the model listing
-                capabilities = []
-                capability_elems = element.select('span[x-test-capability]')
-                for cap_elem in capability_elems:
-                    cap_text = cap_elem.text.strip().lower()
-                    if cap_text and cap_text not in capabilities:
-                        capabilities.append(cap_text)
-                
-                # Extract sizes directly from the model listing
-                sizes = []
-                size_elems = element.select('span[x-test-size]')
-                for size_elem in size_elems:
-                    size_text = size_elem.text.strip().lower()
-                    # Try to parse the size as a numeric value (remove 'b' from '7b', etc.)
-                    size_match = re.search(r'(\d+(?:\.\d+)?)[bB]', size_text)
-                    if size_match:
-                        try:
-                            param_size = float(size_match.group(1))
-                            if param_size == int(param_size):
-                                param_size = int(param_size)
-                            sizes.append(param_size)
-                        except ValueError:
-                            pass
-                  # Add model info
-                model_info = {
-                    "name": model_name,
-                    "url": model_url,
-                    "description": description,
-                    "tag_count": tag_count,
-                    "tags": [],
-                    "capabilities": capabilities,
-                    "sizes": sorted(list(set(sizes))) if sizes else []
-                }
-                
-                # Convert relative date to timestamp
-                updated_timestamp = self.convert_relative_date(updated)
-                if updated_timestamp:
-                    model_info["updated_timestamp"] = updated_timestamp
-                models.append(model_info)
-                
-                # Be nice to the server
-                time.sleep(self.delay)
-                
+                    existing = models_by_name[name]
+                    if len(model.get("capabilities", [])) > len(existing.get("capabilities", [])):
+                        models_by_name[name] = model
+                    elif len(model.get("sizes", [])) > len(existing.get("sizes", [])):
+                        models_by_name[name] = model
+
+            # Be nice to the server
+            time.sleep(self.delay)
+
+        models = list(models_by_name.values())
         logger.info(f"Found {len(models)} models")
         return models
     
