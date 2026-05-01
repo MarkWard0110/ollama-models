@@ -14,7 +14,7 @@ from ollama_models.utils import (
     try_model_call, fetch_memory_usage, format_size,
     fetch_ollama_version
 )
-from ollama_models.config import API_TIMEOUT
+from ollama_models.config import API_TIMEOUT, load_ignore_models_from_config
 
 logger = logging.getLogger("ollama_models.core.context_probe")
 
@@ -186,7 +186,13 @@ def _log_search_results(model_name: str, result: ProbeResult) -> None:
     logger.info(f"Tried contexts: {[t[0] for t in result.tries]}")
     logger.info("=== End Search Results ===")
 
-def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: Optional[str] = None, max_vram=0) -> List[List[str]]:
+def probe_max_context(
+    output_file: str,
+    algorithm: SearchAlgorithm,
+    model_name: Optional[str] = None,
+    max_vram=0,
+    ignore_file: Optional[str] = None,
+) -> List[List[str]]:
     """
     Find and save the maximum context size that fits in VRAM for models.
     The function now saves each model's context fit as soon as it's found,
@@ -230,6 +236,17 @@ def probe_max_context(output_file: str, algorithm: SearchAlgorithm, model_name: 
         models = [{"name": model_name}]
     else:
         models = fetch_installed_models()
+
+    ignored_models = load_ignore_models_from_config(ignore_file)
+    if ignored_models:
+        original_model_count = len(models)
+        models = [m for m in models if m.get("name") not in ignored_models]
+        logger.info(
+            f"Loaded {len(ignored_models)} ignored models from {ignore_file}; "
+            f"processing {len(models)} of {original_model_count} discovered models"
+        )
+    elif ignore_file:
+        logger.info(f"No ignore models loaded from {ignore_file}")
         
     # Function to write current fit data to file
     def write_fit_data():

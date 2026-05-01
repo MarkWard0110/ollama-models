@@ -5,7 +5,11 @@ import os
 import logging
 from ollama_models.core.context_usage import generate_usage_report
 from ollama_models.core.context_probe import probe_max_context, SearchAlgorithm
-from ollama_models.config import DEFAULT_CONTEXT_USAGE_CSV, DEFAULT_MAX_CONTEXT_CSV
+from ollama_models.config import (
+    DEFAULT_CONTEXT_USAGE_CSV,
+    DEFAULT_MAX_CONTEXT_CSV,
+    DEFAULT_IGNORE_CONFIG_FILE,
+)
 
 logger = logging.getLogger("ollama_models.context")
 
@@ -24,6 +28,14 @@ def setup_parser(parser):
                             help=f"Output CSV file (default: {DEFAULT_CONTEXT_USAGE_CSV})")
     usage_parser.add_argument("--model", "-m", 
                             help="Process only this specific model (optional)")
+    usage_parser.add_argument(
+        "--ignore",
+        default=DEFAULT_IGNORE_CONFIG_FILE,
+        help=(
+            "Path to ignore model config file "
+            f"(default: {DEFAULT_IGNORE_CONFIG_FILE})"
+        ),
+    )
     
     # probe command (was max_context_fit.py)
     probe_parser = subparsers.add_parser("probe", help="Probe for maximum context sizes")
@@ -33,6 +45,14 @@ def setup_parser(parser):
                             help="Process only this specific model (optional)")
     probe_parser.add_argument("--max-vram", "-v", 
                             help="Limit the amount of VRAM by setting a max VRAM amount (optional)")
+    probe_parser.add_argument(
+        "--ignore",
+        default=DEFAULT_IGNORE_CONFIG_FILE,
+        help=(
+            "Path to ignore model config file "
+            f"(default: {DEFAULT_IGNORE_CONFIG_FILE})"
+        ),
+    )
 
 def handle_command(args):
     """
@@ -65,11 +85,12 @@ def cmd_usage(args):
     try:
         output_file = args.output
         model_name = args.model if hasattr(args, 'model') else None
+        ignore_file = args.ignore if hasattr(args, 'ignore') else DEFAULT_IGNORE_CONFIG_FILE
         
         logger.info(f"Generating context usage")
         
         # Use the integrated context usage module
-        usage_rows = generate_usage_report(output_file, model_name)
+        usage_rows = generate_usage_report(output_file, model_name, ignore_file=ignore_file)
         
         logger.info(f"Successfully generated context usage report with {len(usage_rows)} entries")
         return 0
@@ -93,6 +114,7 @@ def cmd_probe(args):
         output_file = args.output
         model_name = args.model if hasattr(args, 'model') else None
         max_vram_arg = args.max_vram if hasattr(args, 'max_vram') else None
+        ignore_file = args.ignore if hasattr(args, 'ignore') else DEFAULT_IGNORE_CONFIG_FILE
 
         if max_vram_arg is not None:
             try:
@@ -109,7 +131,13 @@ def cmd_probe(args):
             logger.info(f"Using maximum VRAM limit: {max_vram}")
 
         # Use the integrated context probe module
-        fit_rows = probe_max_context(output_file, SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01, model_name, max_vram=max_vram)
+        fit_rows = probe_max_context(
+            output_file,
+            SearchAlgorithm.PURE_BINARY_MAX_FIRST_G01,
+            model_name,
+            max_vram=max_vram,
+            ignore_file=ignore_file,
+        )
         
         logger.info(f"Successfully probed maximum context sizes with {len(fit_rows)} entries")
         return 0

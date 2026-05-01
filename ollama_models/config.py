@@ -4,6 +4,9 @@ Configuration management for the Ollama Models CLI.
 import os
 from pathlib import Path
 import json
+import logging
+
+logger = logging.getLogger("ollama_models.config")
 
 # Base paths
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -16,6 +19,7 @@ CONFIG_FILENAME = "ollama_models.conf"
 CONTEXT_USAGE_FILENAME = "context_usage.csv"
 MAX_CONTEXT_FILENAME = "context_probe.csv"
 HOST_CONFIG_FILENAME = "ollama_host.conf"
+IGNORE_CONFIG_FILENAME = "ollama_models_ignore.conf"
 
 # Default file paths - now checking the current directory first
 DEFAULT_MODELS_JSON = os.environ.get(
@@ -41,6 +45,11 @@ DEFAULT_MAX_CONTEXT_CSV = os.environ.get(
 DEFAULT_HOST_CONFIG_FILE = os.environ.get(
     "OLLAMA_HOST_CONFIG", 
     os.path.join(CURRENT_DIR, HOST_CONFIG_FILENAME)
+)
+
+DEFAULT_IGNORE_CONFIG_FILE = os.environ.get(
+    "OLLAMA_MODELS_IGNORE",
+    os.path.join(CURRENT_DIR, IGNORE_CONFIG_FILENAME)
 )
 
 # API configuration
@@ -81,3 +90,22 @@ def load_api_base_from_config(config_path):
     except Exception:
         pass
     return None
+
+
+def load_ignore_models_from_config(config_path):
+    """Load model names to ignore from a plain text config file."""
+    ignored_models = set()
+
+    if not config_path or not os.path.isfile(config_path):
+        return ignored_models
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                model = line.strip()
+                if model and not model.startswith('#'):
+                    ignored_models.add(model)
+    except Exception as e:
+        logger.warning(f"Failed to load ignore config from {config_path}: {e}")
+
+    return ignored_models

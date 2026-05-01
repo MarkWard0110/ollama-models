@@ -6,12 +6,17 @@ import csv
 import logging
 import math
 import pathlib
+from typing import Optional
 from ollama_models.utils import (
     fetch_installed_models, fetch_max_context_size,
     try_model_call, fetch_memory_usage, format_size,
     fetch_ollama_version
 )
-from ollama_models.config import API_TIMEOUT, DEFAULT_MAX_CONTEXT_CSV
+from ollama_models.config import (
+    API_TIMEOUT,
+    DEFAULT_MAX_CONTEXT_CSV,
+    load_ignore_models_from_config,
+)
 
 logger = logging.getLogger("ollama_models.core.context_usage")
 
@@ -50,7 +55,7 @@ def save_progress(output_file, usage_rows):
     except Exception as e:
         logger.error(f"Error saving progress: {str(e)}")
 
-def generate_usage_report(output_file, model_name=None):
+def generate_usage_report(output_file, model_name=None, ignore_file: Optional[str] = None):
     """
     Generate a context usage report for Ollama models.
     
@@ -92,8 +97,23 @@ def generate_usage_report(output_file, model_name=None):
     else:
         models = fetch_installed_models()
 
+    ignored_models = load_ignore_models_from_config(ignore_file)
+    if ignored_models:
+        original_model_count = len(models)
+        models = [m for m in models if m.get("name") not in ignored_models]
+        logger.info(
+            f"Loaded {len(ignored_models)} ignored models from {ignore_file}; "
+            f"processing {len(models)} of {original_model_count} discovered models"
+        )
+    elif ignore_file:
+        logger.info(f"No ignore models loaded from {ignore_file}")
+
     for m in models:
         name = m.get("name")
+        if not name:
+            logger.warning(f"Skipping model with no name: {m}")
+            continue
+
         max_ctx = fetch_max_context_size(name)
         logger.info(f"Processing model: {name}")
         logger.info(f"Maximum reported context size: {max_ctx}")

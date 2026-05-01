@@ -1,0 +1,6 @@
+# Optional ignore list for context usage/probe commands.
+# One model name per line.
+
+# Example cloud model definitions to skip:
+openai/gpt-4.1
+anthropic/claude-sonnet-4
